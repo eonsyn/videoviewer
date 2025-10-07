@@ -11,7 +11,7 @@ import Disclaimer from "@/components/home/Disclaimer";
 import Faq from '@/components/home/Faq'
 export default function Home() {
   const { server_1, server_2 } = useGlobalState();
-  const [url, setUrl] = useState("https://1024terabox.com/s/1KzOBxvOgxstV19_JJs63FA");
+  const [url, setUrl] = useState("");
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

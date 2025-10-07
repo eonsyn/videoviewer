@@ -53,20 +53,29 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <head>
+       <head>
+        {/* Google Search Console Verification */}
+        <meta
+          name="google-site-verification"
+          content="a519RGXXnU8_HDFGvb_9NLkro6BAy_BnCXPq8fhFTkY"
+        />
+
+        {/* Google Analytics 4 */}
         <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-1W81KSW14R"
+          src="https://www.googletagmanager.com/gtag/js?id=G-WZL37ER1NV"
           strategy="afterInteractive"
         />
-         <Script id="ga-init" strategy="afterInteractive">
+        <Script id="ga-init" strategy="afterInteractive">
           {`
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-WZL37ER1NV');
-  `}
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-WZL37ER1NV', {
+              page_path: window.location.pathname,
+            });
+          `}
         </Script>
-        </head>
+      </head>
       <body className={`  `}>
         <GlobalStateProvider>
           <Navbar />

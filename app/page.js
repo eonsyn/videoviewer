@@ -16,29 +16,38 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeServer, setActiveServer] = useState(null);
+const handleSubmit = async (serverType) => {
+  if (!url.trim()) {
+    setError("Please enter a valid Terabox URL.");
+    return;
+  }
 
-  const handleSubmit = async (serverType) => {
-    if (!url.trim()) {
-      setError("Please enter a valid Terabox URL.");
-      return;
+  setActiveServer(serverType);
+  setLoading(true);
+  setError("");
+  setResponse(null);
+
+  try {
+    // Call the appropriate server function
+    const data =
+      serverType === "server1" ? await server_1(url) : await server_2(url);
+
+    console.log("data is:", data);
+
+    // Check if the response contains an error
+    if (data.error) {
+      throw new Error(data.error || "Server returned an error");
     }
 
-    setActiveServer(serverType);
-    setLoading(true);
-    setError("");
-    setResponse(null);
+    setResponse(data);
+  } catch (err) {
+    console.error(err);
+    setError(err.message || "Something went wrong. Please check console or try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
-    try {
-      const data =
-        serverType === "server1" ? await server_1(url) : await server_2(url);
-      setResponse(data);
-    } catch (err) {
-      console.error(err);
-      setError("Something went wrong. Please check console or try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <>
@@ -50,7 +59,7 @@ export default function Home() {
           <h1 className="text-4xl md:text-6xl font-semibold text-center mb-4">
             Download Terabox Videos & Files
           </h1>
-          <p className='text-xl px-20 pb-4 text-center'>TeraDownloader.netlify.app simplifies Terabox file and video downloads. Skip Terabox login, download directly from servers. No data storage, ensuring privacy.</p>
+          <p className='text-xl md:px-20 pb-4 text-center'>TeraDownloader.netlify.app simplifies Terabox file and video downloads. Skip Terabox login, download directly from servers. No data storage, ensuring privacy.</p>
 
           {/* Input Field */}
           <div className="flex flex-col gap-4 mb-6">
@@ -91,7 +100,7 @@ export default function Home() {
           {/* Error message */}
           {error && (
             <p className="text-red-500 text-center font-medium bg-red-500/10 border border-red-600 rounded-lg py-2">
-              {error}
+              There was an error use Different Url
             </p>
           )}
         </div>

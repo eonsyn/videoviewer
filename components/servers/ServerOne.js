@@ -26,7 +26,7 @@ function ServerOne({ res = [] }) {
               src={file.direct_link}
               poster={file.thumb}
               controls
-              className="w-full rounded-lg mb-3"
+              className="w-full max-h-60 rounded-lg mb-3"
             />
           ) : (
             <p className="text-sm text-gray-400 mb-3">No video preview available</p>

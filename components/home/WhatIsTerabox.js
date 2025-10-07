@@ -17,13 +17,13 @@ function WhatIsTerabox() {
       <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
         <strong>TeraBox</strong> is a free cloud storage service that offers <strong>1TB of secure storage</strong> 
         for your files, documents, photos, and videos. With TeraBox, you can easily upload and store your data, 
-        and access it from any device—whether you're on the web, using the desktop app, or on your mobile phone.
+        and access it from any device&mdash;whether you&apos;re on the web, using the desktop app, or on your mobile phone.
       </p>
 
       <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
         This platform also allows you to share your files with friends and family effortlessly. 
         It provides features like automatic and manual backups, file organization, version control, 
-        and easy sharing—ensuring your data is <strong>safe, accessible,</strong> and <strong>well-managed</strong>.
+        and easy sharing&mdash;ensuring your data is <strong>safe, accessible,</strong> and <strong>well-managed</strong>.
       </p>
 
       {/* Features Section */}

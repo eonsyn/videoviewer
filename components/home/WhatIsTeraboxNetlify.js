@@ -1,6 +1,7 @@
 'use client'
 import React from 'react'
 import { DownloadCloud, Globe, Database } from 'lucide-react'
+import Link from 'next/link'
 
 export default function WhatIsTeraboxVercel() {
   const hosts = [
@@ -64,20 +65,6 @@ export default function WhatIsTeraboxVercel() {
         </ul>
       </div>
 
-      {/* CTA / Footer */}
-      <footer className="mt-5 flex items-center justify-between">
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Fast, temporary fetches — no accounts, no storage.
-        </p>
-
-        <a
-          href="/#download" 
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg shadow-sm hover:opacity-95 active:scale-95 transition"
-        >
-          <DownloadCloud className="w-4 h-4" />
-          Try the downloader
-        </a>
-      </footer>
-    </section>
+      </section>
   )
 }

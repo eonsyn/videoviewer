@@ -1,4 +1,3 @@
-'use client'
 import React from 'react'
 import { Cloud, ShieldCheck, Share2, FolderOpen } from 'lucide-react'
 

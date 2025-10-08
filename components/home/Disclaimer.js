@@ -1,5 +1,4 @@
-'use client'
-import React from 'react'
+ import React from 'react'
 import { AlertTriangle, Shield, Mail } from 'lucide-react'
 import Link from 'next/link'
 
@@ -38,15 +37,7 @@ function Disclaimer() {
           <Shield className="w-6 h-6 text-green-600 dark:text-green-400 mt-1" />
           <p className="text-sm">
             If you are a content owner and believe this tool violates your rights, please{' '}
-            <Link href="/" passHref legacyBehavior>
-              <a
-                onClick={(e) => e.preventDefault()}
-                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium hover:underline"
-              >
-                <Mail className="w-4 h-4" />
-                contact us
-              </a>
-            </Link>
+             
             . We will take immediate action.
           </p>
         </div>

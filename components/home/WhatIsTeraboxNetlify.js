@@ -1,4 +1,3 @@
-'use client'
 import React from 'react'
 import { DownloadCloud, Globe, Database } from 'lucide-react'
 import Link from 'next/link'

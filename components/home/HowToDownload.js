@@ -1,4 +1,3 @@
-'use client'
 import React from 'react'
 import { Link as LinkIcon, ClipboardPaste, Download, Server } from 'lucide-react'
 

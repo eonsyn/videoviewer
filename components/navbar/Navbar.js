@@ -40,6 +40,12 @@ function Navbar() {
           >
             Contact
           </Link>
+          <Link
+              href="/dmca-policy"
+             className="hover:text-blue-400 transition-colors font-medium"
+           >
+              DMCA
+            </Link>
           
         </div>
 
@@ -69,6 +75,13 @@ function Navbar() {
               className="hover:text-blue-400 transition-colors font-medium"
             >
               About
+            </Link>
+             <Link
+              href="/dmca-policy"
+              onClick={toggleMenu}
+              className="hover:text-blue-400 transition-colors font-medium"
+            >
+              DMCA
             </Link>
            
           </div>

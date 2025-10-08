@@ -3,6 +3,7 @@ import "./globals.css";
 import { GlobalStateProvider } from "@/components/AppContext"; // single provider
 import Navbar from "@/components/navbar/Navbar";
 import Script from "next/script";
+import Footer from '@/components/footer/Footer'
 export const metadata = {
   title: "TeraDownloader – Free TeraBox Video & File Downloader (100% Working)",
   description:
@@ -80,6 +81,7 @@ export default function RootLayout({ children }) {
         <GlobalStateProvider>
           <Navbar />
          <main className="pt-4">{children}</main>
+         <Footer/>
         </GlobalStateProvider>
       </body>
     </html>

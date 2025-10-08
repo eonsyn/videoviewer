@@ -34,12 +34,9 @@ export function GlobalStateProvider({ children }) {
       if (!res.ok) throw new Error(`Error: ${res.status}`);
       
       const data = await res.json();
-      if(data.status === 'success'){
-        
+       
       return data;
-      }else{
-        server_2(url)
-      }
+      
       
     } catch (err) {
       console.error(err);

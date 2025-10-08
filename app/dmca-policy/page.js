@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function Page() {
   return (
-    <main className="max-w-3xl pt-14 mx-auto px-6 text-gray-800 dark:text-gray-100 leading-relaxed">
+    <main className="max-w-3xl pt-14 mx-auto px-6   leading-relaxed">
       <section>
         <h1 className="text-3xl font-bold mb-4 text-blue-600">
           DMCA Policy

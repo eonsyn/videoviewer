@@ -26,7 +26,7 @@ function ServerTwo({ res }) {
     />
   </svg>
   <span>
-    <strong>Invalid URL:</strong> Please use a correct link.
+    <strong>There was an error:</strong> Please use Server 1.
   </span>
 </div>
 

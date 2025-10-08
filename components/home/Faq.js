@@ -44,7 +44,7 @@ export default function Faq() {
         {faqs.map((item, index) => (
           <details
             key={index}
-            className="group bg-white/80 dark:bg-gray-800/70 border border-gray-100 dark:border-gray-700 rounded-xl shadow-sm transition"
+            className="group bg-white/80 dark:bg-gray-800/70 border border-gray-100 dark:border-gray-700 overflow-hidden rounded-xl shadow-sm transition"
           >
             <summary className="cursor-pointer flex items-center justify-between p-4 text-left font-medium text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
               {item.q}

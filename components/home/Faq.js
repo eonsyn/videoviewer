@@ -34,7 +34,7 @@ export default function Faq() {
       {/* Header */}
       <header className="flex items-center gap-3 mb-5">
         <HelpCircle className="w-7 h-7 text-blue-600 dark:text-blue-400" />
-        <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
+        <h2 className="text-2xl font-semibold  ">
           Frequently Asked Questions (FAQ)
         </h2>
       </header>

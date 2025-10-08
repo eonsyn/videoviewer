@@ -25,12 +25,12 @@ function HowToDownload() {
       {/* Header */}
       <header className="flex items-center gap-3 mb-5">
         <Server className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
-        <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
+        <h2 className="text-2xl font-semibold ">
           How to Download Files or Videos from TeraBox
         </h2>
       </header>
 
-      <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+      <p className=" text-gray-300 mb-6 leading-relaxed">
         We provide <strong>two download servers</strong> for your convenience — choose either one and enjoy seamless downloads.
         Follow these quick steps to save files or videos from TeraBox with ease:
       </p>

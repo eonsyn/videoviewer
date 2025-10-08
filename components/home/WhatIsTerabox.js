@@ -7,19 +7,19 @@ function WhatIsTerabox() {
       {/* Heading */}
       <div className="flex items-center gap-3 mb-4">
         <Cloud className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-        <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
+        <h2 className="text-2xl font-semibold  ">
           What is TeraBox?
         </h2>
       </div>
 
       {/* Description */}
-      <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
+      <p className=" text-gray-300  leading-relaxed mb-4">
         <strong>TeraBox</strong> is a free cloud storage service that offers <strong>1TB of secure storage</strong> 
         for your files, documents, photos, and videos. With TeraBox, you can easily upload and store your data, 
         and access it from any device&mdash;whether you&apos;re on the web, using the desktop app, or on your mobile phone.
       </p>
 
-      <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
+      <p className="text-gray-300 leading-relaxed mb-6">
         This platform also allows you to share your files with friends and family effortlessly. 
         It provides features like automatic and manual backups, file organization, version control, 
         and easy sharing&mdash;ensuring your data is <strong>safe, accessible,</strong> and <strong>well-managed</strong>.

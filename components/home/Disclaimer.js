@@ -4,7 +4,7 @@ import Link from 'next/link'
 
 function Disclaimer() {
   return (
-    <section className="max-w-3xl mx-auto p-6 bg-gradient-to-br from-red-50/60 to-white dark:from-gray-900 dark:to-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-md">
+    <section className="max-w-3xl mx-auto p-6 bg-gradient-to-br from-red-50/60 to-white dark:from-gray-900  rounded-2xl border border-gray-200  shadow-md">
       {/* Header */}
       <header className="flex items-center gap-3 mb-4">
         <AlertTriangle className="w-7 h-7 text-red-600 dark:text-red-400" />

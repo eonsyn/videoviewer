@@ -4,12 +4,12 @@ import { Home, AlertTriangle } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen  text-white px-4">
+    <div className="flex flex-col items-center justify-center min-h-screen text-white px-4">
       <div className="bg-gray-800/50 backdrop-blur-md p-8 rounded-2xl shadow-lg text-center max-w-md w-full border border-gray-700">
         <AlertTriangle className="w-16 h-16 text-yellow-400 mx-auto mb-4 animate-bounce" />
         <h1 className="text-3xl font-bold mb-2">404 - Page Not Found</h1>
         <p className="text-gray-400 mb-6">
-          Oops! The page you're looking for doesn’t exist or may have been moved.
+          Oops! The page you&apos;re looking for doesn&apos;t exist, or may have been moved.
         </p>
         <Link
           href="/"
@@ -19,7 +19,9 @@ export default function NotFound() {
           Return Home
         </Link>
       </div>
-      <p className="text-sm text-gray-500 mt-8">© {new Date().getFullYear()} Terabox Downloader</p>
+      <p className="text-sm text-gray-500 mt-8">
+        © {new Date().getFullYear()}, Terabox Downloader
+      </p>
     </div>
   );
 }

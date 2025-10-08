@@ -5,6 +5,7 @@ import { useGlobalState } from "@/components/AppContext";
 import ServerOne from "@/components/servers/ServerOne";
 import ServerTwo from "@/components/servers/ServerTwo";
 import VideoLoader from "@/components/loading/VideoLoader";
+import NativeBanner from '../ads/adsterra/NativeBanner';
 import WhatIsTerabox from "@/components/home/WhatIsTerabox";
 import WhatIsTeraboxNetlify from "@/components/home/WhatIsTeraboxNetlify";
 import HowToDownload from "@/components/home/HowToDownload";
@@ -127,6 +128,7 @@ function Converter() {
           {!loading && activeServer === "server1" && response && <ServerOne res={response} />}
           {!loading && activeServer === "server2" && response && <ServerTwo res={response} />}
         </div>
+        {/* <NativeBanner/> */}
       </div>
   )
 }

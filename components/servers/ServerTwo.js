@@ -44,7 +44,7 @@ function ServerTwo({ res }) {
           {/* Video Preview */}
           {res.download_link ? (
             <video
-              src={res.download_link}
+              src={res.proxy_play_url}
               poster={res.thumbnail}
               controls
               className="w-full max-h-60 rounded-lg mb-3"
@@ -56,16 +56,16 @@ function ServerTwo({ res }) {
           )}
           {/* res Name */}
           <h3 className="text-lg font-semibold text-white mb-2">
-            {res.name || "Unnamed res"}
+            {res.file_name || "Unnamed res"}
           </h3>
           {/* res Size */}
-          {res.size_str && (
+          {res.file_size && (
             <p className="text-sm  text-gray-300 mb-2">
-              <strong>Size:</strong> {res.size_str}
+              <strong>Size:</strong> {res.file_size}
              {/* Download Link */}
-          {res.download_link && (
+          {res.proxy_download_url  && (
             <a
-              href={res.download_link}
+              href={res.download_link||res.proxy_download_url}
               target="_blank"
               rel="noopener noreferrer"
               className="ml-4 inline-block px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"

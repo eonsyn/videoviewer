@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { encryptWithSessionKey } from "@/app/lib/encryptor-client";
 
-export default function Converter() {
+export default function Page() {
   const [url, setUrl] = useState("");
   const [resp, setResp] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -12,7 +12,7 @@ export default function Converter() {
     setResp(null);
     try {
       // 1) request session
-      const sres = await fetch("http://localhost:4000/api/session", { method: "POST" });
+      const sres = await fetch("https://shhapi.vercel.app/api/session", { method: "POST" });
       const sjson = await sres.json();
       if (!sjson.ok) return setResp(sjson);
 
@@ -25,7 +25,7 @@ export default function Converter() {
       const envelopeB64 = await encryptWithSessionKey(payloadObj, sessionKey);
 
       // 4) send to server
-      const fres = await fetch("http://localhost:4000/api/terabox", {
+      const fres = await fetch("https://shhapi.vercel.app/api/terabox", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, payload: envelopeB64 })

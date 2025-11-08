@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 
 export const metadata = {
@@ -8,16 +9,18 @@ export const metadata = {
 
 export default function Page() {
   return (
-    <main className="max-w-3xl pt-14 mx-auto px-6   leading-relaxed">
-      <section>
-        <h1 className="text-3xl font-bold mb-4 text-blue-600">
+    <main className="max-w-3xl mx-auto px-6 pt-14 leading-relaxed text-gray-900 dark:text-gray-100">
+      
+      {/* Header */}
+      <section className="mb-8">
+        <h1 className="text-3xl font-bold mb-4 text-blue-600 dark:text-blue-400">
           DMCA Policy
         </h1>
         <p className="mb-6">
           This DMCA Policy explains how{" "}
           <a
             href="https://teradownloader.netlify.app/"
-            className="text-blue-500 hover:underline"
+            className="text-blue-500 hover:underline dark:text-blue-400"
           >
             TeraDownloader
           </a>{" "}
@@ -27,54 +30,41 @@ export default function Page() {
         </p>
       </section>
 
+      {/* Reporting Copyright Infringement */}
       <section className="mb-8">
-        <h2 className="text-2xl font-semibold mb-3">
-          Reporting Copyright Infringement
-        </h2>
+        <h2 className="text-2xl font-semibold mb-3">Reporting Copyright Infringement</h2>
         <p className="mb-3">
           If you believe your copyrighted work has been used on our website
-          without authorization, please notify our DMCA Agent by emailing{" "}
+          without authorization, please join our Telegram group and ask your query:{" "}
           <a
-            href="mailto:mail.teradownloader@gmail.com"
-            className="text-blue-500 hover:underline"
+            href="https://t.me/+2fvOF7WT0YBjZDM9"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:underline dark:text-blue-400"
           >
-            mail.teradownloader@gmail.com
+            Telegram Group
           </a>
-          .
         </p>
-        <p className="mb-3">Your notice must include the following information:</p>
+        <p className="mb-3">Your notice should include the following information:</p>
         <ul className="list-disc pl-6 space-y-2">
-          <li>
-            A physical or electronic signature of the person authorized to act
-            on behalf of the copyright owner.
-          </li>
+          <li>A physical or electronic signature of the person authorized to act on behalf of the copyright owner.</li>
           <li>Identification of the copyrighted work claimed to have been infringed.</li>
-          <li>
-            Description of the infringing material and its location on our
-            website.
-          </li>
+          <li>Description of the infringing material and its location on our website.</li>
           <li>Your contact details (address, telephone number, and email address).</li>
-          <li>
-            A statement of good faith belief that the use is not authorized by
-            the copyright owner, its agent, or the law.
-          </li>
-          <li>
-            A statement that the information provided is accurate and that you
-            are authorized to act on behalf of the copyright owner.
-          </li>
+          <li>A statement of good faith belief that the use is not authorized by the copyright owner, its agent, or the law.</li>
+          <li>A statement that the information provided is accurate and that you are authorized to act on behalf of the copyright owner.</li>
         </ul>
       </section>
 
+      {/* Repeat Infringer Policy */}
       <section className="mb-8">
-        <h2 className="text-2xl font-semibold mb-3">
-          Repeat Infringer Policy
-        </h2>
+        <h2 className="text-2xl font-semibold mb-3">Repeat Infringer Policy</h2>
         <p>
           We strictly adhere to DMCA guidelines. Users who repeatedly infringe
           copyrights will have their access to{" "}
           <a
             href="https://teradownloader.netlify.app/"
-            className="text-blue-500 hover:underline"
+            className="text-blue-500 hover:underline dark:text-blue-400"
           >
             TeraDownloader
           </a>{" "}
@@ -83,30 +73,32 @@ export default function Page() {
         </p>
       </section>
 
+      {/* Updates */}
       <section className="mb-8">
-        <h2 className="text-2xl font-semibold mb-3">
-          Updates to This Policy
-        </h2>
+        <h2 className="text-2xl font-semibold mb-3">Updates to This Policy</h2>
         <p>
-          We may update this DMCA Policy periodically to comply with
-          regulations and laws. Please check back regularly for any revisions.
+          We may update this DMCA Policy periodically to comply with regulations and laws. 
+          Please check back regularly for any revisions.
         </p>
       </section>
 
+      {/* Contact / Support */}
       <section>
-        <h2 className="text-2xl font-semibold mb-3">Contact Us</h2>
+        <h2 className="text-2xl font-semibold mb-3">Contact / Support</h2>
         <p>
-          Thank you for helping us maintain a copyright-compliant environment.
-          For questions about this DMCA Policy, contact us at{" "}
+          For questions about this DMCA Policy or support, join our Telegram group and ask your query:{" "}
           <a
-            href="mailto:mail.teradownloader@gmail.com"
-            className="text-blue-500 hover:underline"
+            href="https://t.me/+2fvOF7WT0YBjZDM9"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:underline dark:text-blue-400"
           >
-            mail.teradownloader@gmail.com
+            Telegram Group
           </a>
           .
         </p>
       </section>
+
     </main>
   );
 }

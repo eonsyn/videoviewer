@@ -5,7 +5,7 @@ import HowToDownload from "@/components/home/HowToDownload";
 import Disclaimer from "@/components/home/Disclaimer";
 import Faq from '@/components/home/Faq';
 import Popunder from "@/components/ads/adsterra/Popunder"; 
-import Converter from "@/components/home/Converter";
+import TakeUrl from "@/components/home/TakeUrl";
 export default function Home() {
    
 
@@ -13,8 +13,7 @@ export default function Home() {
   return (
     <>
 <Popunder/>
-     <Converter/>
-      
+      <TakeUrl/>
 <WhatIsTerabox/>
 <WhatIsTeraboxNetlify/>
 <HowToDownload/>

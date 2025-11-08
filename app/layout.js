@@ -1,6 +1,5 @@
-import { Geist, Geist_Mono } from "next/font/google";
+ 
 import "./globals.css";
-import { GlobalStateProvider } from "@/components/AppContext"; // single provider
 import Navbar from "@/components/navbar/Navbar";
 import Script from "next/script";
 import Footer from '@/components/footer/Footer'
@@ -77,12 +76,11 @@ export default function RootLayout({ children }) {
           `}
         </Script>
       </head>
-      <body className={`  `}>
-        <GlobalStateProvider>
+      <body className={`bg-background  `}>
+       
           <Navbar />
-         <main className="pt-4">{children}</main>
-         <Footer/>
-        </GlobalStateProvider>
+         <main className="">{children}</main>
+         <Footer/> 
       </body>
     </html>
   );

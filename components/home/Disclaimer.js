@@ -4,49 +4,52 @@ import Link from "next/link";
 
 function Disclaimer() {
   return (
-    <section className="max-w-3xl mx-auto p-6 bg-white/20 backdrop-blur-sm rounded-2xl border border-pink-200 shadow-md text-white transition-all">
-      
+    <section className="max-w-5xl mx-auto p-8  transition-all">
       {/* Header */}
       <header className="flex items-center gap-3 mb-6">
-        <AlertTriangle className="w-7 h-7 text-pink-500" />
+        <AlertTriangle className="w-7 h-7 text-pink-600" />
         <h2 className="text-2xl font-bold text-pink-600">Disclaimer</h2>
       </header>
 
       {/* Content */}
-      <div className="space-y-5 leading-relaxed text-white">
+      <div className="space-y-5 leading-relaxed">
         <p>
-          <strong className="text-pink-600">TeraDownloader.netlify.app</strong> is{" "}
-          <span className="text-white">
-            not an official TeraBox website and is not affiliated with{" "}
-          </span>
-          <span className="font-medium text-orange-500">terabox.app</span> or{" "}
-          <span className="font-medium text-orange-500">Flextech Inc.</span>.
+          <strong className="text-pink-600">TeraFetch.netlify.app</strong> is an independent tool
+          created to help users download files, videos, and images from
+          <span className="text-orange-500 font-medium"> TeraBox</span> shared links.
+          This site is <strong>not affiliated</strong> with{" "}
+          <span className="text-orange-500 font-medium">terabox.app</span> or{" "}
+          <span className="text-orange-500 font-medium">Flextech Inc.</span>.
         </p>
 
         <p>
-          Our tool simply generates{" "}
-          <strong className="text-pink-500">direct download links</strong> for publicly shared TeraBox files.
-          We do <strong className="text-pink-500">not</strong> store, host, or upload any content ourselves.
-          All files remain on the original TeraBox servers.
+          Our application simply provides{" "}
+          <strong className="text-pink-600">direct download links</strong> for publicly
+          accessible TeraBox files. We do <strong>not</strong> host, upload, or store
+          any files or data. All downloads come directly from the official TeraBox servers.
         </p>
 
         <p>
-          We fully <strong className="text-pink-500">respect copyright laws</strong> and
-          encourage users to only download content they are authorized to access.
+          <strong className="text-pink-600">TeraFetch</strong> respects all applicable{" "}
+          <strong>copyright laws</strong> and encourages users to download or share
+          only the content they have legal rights to access.
         </p>
 
-        <div className="flex items-start gap-3 bg-white/20 border border-pink-200 p-4 rounded-xl shadow-inner">
-          <Shield className="w-6 h-6 text-orange-400 mt-1" />
-          <p className="text-sm text-white">
-            If you are a content owner and believe this tool violates your rights, please{" "}
+        {/* Contact Section */}
+        <div className="flex items-start gap-3 bg-pink-50 border border-pink-100 p-4 rounded-xl hover:border-pink-300 transition-all">
+          <Shield className="w-6 h-6 text-orange-500 mt-1" />
+          <p className="text-sm text-gray-700">
+            If you are a content owner and believe this service infringes your rights,
+            please contact us immediately. You can reach out through our{" "}
             <Link
               href="https://t.me/+2fvOF7WT0YBjZDM9"
               target="_blank"
-              className="inline-flex items-center gap-1 text-pink-500 hover:text-pink-400 transition-colors"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-pink-600 font-medium hover:underline"
             >
-              join our Telegram group <Mail className="w-4 h-4" />
+              Telegram Group <Mail className="w-4 h-4" />
             </Link>{" "}
-            and ask your query. We will take immediate action.
+            and we will review and take appropriate action promptly.
           </p>
         </div>
       </div>

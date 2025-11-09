@@ -12,7 +12,7 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center md:items-start gap-8">
           {/* Brand */}
           <div className="text-center md:text-left">
-            <h2 className="text-xl font-semibold text-pink-600">TeraDownloader</h2>
+            <h2 className="text-xl font-semibold text-pink-600">TeraFetch</h2>
             <p className="mt-2 text-sm max-w-xs text-gray-600">
               A simple, fast, and secure way to generate direct TeraBox download links instantly.
             </p>
@@ -38,7 +38,7 @@ export default function Footer() {
         {/* Divider & Bottom Text */}
         <div className="border-t border-gray-300 mt-8 pt-6 text-center text-sm">
           <p>
-            © {year} <span className="font-medium text-pink-600">TeraDownloader</span>. All rights reserved.
+            © {year} <span className="font-medium text-pink-600">TeraFetch</span>. All rights reserved.
           </p>
         </div>
       </div>

@@ -30,7 +30,7 @@ export default function Faq() {
   ];
 
   return (
-    <section className="max-w-3xl mx-auto p-6 text-white transition-all">
+    <section className="max-w-5xl mx-auto p-6 text-white transition-all">
       {/* Header */}
       <header className="flex items-center gap-3 mb-6">
         <HelpCircle className="w-7 h-7 text-pink-500" />

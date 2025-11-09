@@ -16,7 +16,7 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-white/10 backdrop-blur-md border-b border-pink-200 shadow-md text-gray-700 transition-all">
+    <nav className="sticky top-0 left-0 w-full z-50 bg-white   border-b border-pink-200 shadow-md text-gray-700 transition-all">
       <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
 
         {/* Logo */}
@@ -26,7 +26,7 @@ export default function Navbar() {
             href="/"
             className="text-xl font-semibold tracking-wide text-pink-600 hover:text-orange-500 transition-colors"
           >
-            TeraBox Downloader
+            TeraFetch
           </Link>
         </div>
 

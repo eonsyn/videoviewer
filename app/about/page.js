@@ -1,4 +1,4 @@
-
+"use client";
 
 
 import { Cloud, Rocket, Heart, Shield, Zap, Users } from "lucide-react";
@@ -121,7 +121,7 @@ export default function AboutTeraFetch() {
             background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
             textDecoration: 'none',
           }}>
-            Get Started — It's Free
+            Get Started — It&apos;s Free
           </Link>
         </div>
       </div>

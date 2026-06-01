@@ -172,8 +172,7 @@ export default function Converter({ token, url }) {
   {/* 🔄 Loading State */}
   {loading && !error && (
     <Loading/>
-  )}
-<Loading/>
+  )} 
   {/* ❌ Error State */}
   {error && (
     <div className="flex flex-col items-center justify-center text-center gap-4 p-6 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 shadow-md mt-6">

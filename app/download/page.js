@@ -1,6 +1,8 @@
 import { genToken } from "@/lib/genToken";
-import Converter from "@/components/url/Converter";
+import Link from "next/link";
 import { FaArrowLeft } from "react-icons/fa6";
+import Converter from "@/components/url/Converter";
+
 export default async function DownloadPage({ searchParams }) {
   // Await the async searchParams object
   const params = await searchParams;
@@ -9,28 +11,63 @@ export default async function DownloadPage({ searchParams }) {
   const token = genToken(process.env.SECRET_KEY);
 
   return (
-    <div className="min-h-screen   bg-gradient-to-br from-pink-100 via-pink-200 to-orange-100 text-gray-800 flex flex-col items-center  md:px-4  md:py-10">
-      
-      {/* Page Heading */}
-      <h1 className="text-3xl sm:text-4xl  font-extrabold mb-6 text-pink-600 text-center drop-shadow-md">
-      TeraBox Downloader
-      </h1>
-<div className="w-full h-20 flex items-center justify-center">
-  <button className="flex cursor-pointer items-center justify-center gap-2 px-4 py-3 rounded-md bg-pink-500 text-white font-medium
-    transition-all duration-300 ease-in-out
-    hover:gap-4 hover:scale-105 hover:bg-pink-600">
-    <FaArrowLeft className="transition-transform duration-300 ease-in-out group-hover:-translate-x-1" />
-    Download another video
-  </button>
-</div>
-
-
-      {/* Converter Component */}
-      <div className="w-full md:max-w-[70vw]  md:bg-white/40 backdrop-blur-sm rounded-2xl shadow-xl md:p-6">
-        <Converter url={decodedUrl} token={token} />
+    <div className=""
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        justifyContent: 'center',
+        padding: '120px 24px 80px',
+        textAlign: 'center',
+        overflow: 'hidden',
+        background: '#080b12',
+      }}>
+      {/* Background decorations */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div style={{
+          position: 'absolute',
+          top: '10%',
+          left: '15%',
+          width: '500px',
+          height: '500px',
+          background: 'radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)',
+          borderRadius: '50%',
+          animation: 'orb-float 8s ease-in-out infinite',
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: '10%',
+          right: '15%',
+          width: '400px',
+          height: '400px',
+          background: 'radial-gradient(circle, rgba(52,211,153,0.08) 0%, transparent 70%)',
+          borderRadius: '50%',
+          animation: 'orb-float 10s ease-in-out infinite reverse',
+        }} />
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)`,
+          backgroundSize: '60px 60px',
+          maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%)',
+        }} />
+      </div>
+      {/* Back button */}
+      <div className="w-full flex justify-start my-8">
+        <Link href="/" className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-glow transition-colors duration-200">
+          <FaArrowLeft className="text-xl" />
+          <span>Back</span>
+        </Link>
       </div>
 
-       
+      {/* Page Heading */}
+      <h1 className="text-4xl sm:text-5xl font-extrabold mb-4 text-center gradient-text animate-fadeUp">
+        TeraBox Downloader
+      </h1>
+
+      {/* Converter container */}
+      <div className="w-full max-w-3xl  p-6 md:p-8">
+        <Converter url={decodedUrl} token={token} />
+      </div>
     </div>
   );
 }

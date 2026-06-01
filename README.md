@@ -1,37 +1,145 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Videoviewer
 
-## Getting Started
+![Banner Image](https://raw.githubusercontent.com/eonsyn/videoviewer/main/docs/banner.png)
 
-First, run the development server:
+A modern, responsive video player web application built with **Next.js 14** and **React**. It supports multiple video formats, custom playlists, playback controls, subtitles, and a sleek glassmorphism UI.
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Demo](#demo)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Development](#development)
+- [Building for Production](#building-for-production)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## Features
+
+- **Responsive Design** – Works flawlessly on desktop, tablet, and mobile.
+- **Glassmorphism UI** – Modern translucent panels with smooth micro‑animations.
+- **Multiple Source Support** – MP4, WebM, HLS, DASH.
+- **Custom Playlists** – Queue videos, reorder, and shuffle.
+- **Subtitles & Captions** – VTT support with automatic sync.
+- **Keyboard Shortcuts** – Space, Arrow keys, `F` for fullscreen, etc.
+- **Theming** – Light & dark mode with CSS variables.
+- **Accessibility** – ARIA labels, focus management, screen‑reader friendly.
+
+---
+
+## Demo
+
+<details>
+<summary>Click to view live demo</summary>
+
+[Live Demo on Vercel](https://videoviewer.vercel.app)
+
+</details>
+
+---
+
+## Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Clone the repository
+git clone https://github.com/eonsyn/videoviewer.git
+cd videoviewer
+
+# Install dependencies (using npm, yarn, pnpm, or bun)
+npm install   # or yarn install, pnpm install, bun install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Start the development server
+npm run dev   # or yarn dev, pnpm dev, bun dev
+```
 
-## Learn More
+Open your browser at `http://localhost:3000` to see the app. Edit `app/page.js` (or any component under `app/`) and the page will hot‑reload.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+├─ app/                # Next.js App Router pages & layouts
+│   ├─ layout.js       # Root layout with global styles
+│   └─ page.js         # Home page – video player UI
+├─ components/         # Reusable React components
+│   ├─ Player.jsx      # Core video player logic
+│   ├─ Controls.jsx    # Playback controls
+│   └─ Playlist.jsx    # Playlist UI
+├─ public/            # Static assets (icons, images, sample videos)
+├─ styles/            # Global CSS & design tokens
+│   └─ globals.css    # Tailwind‑free vanilla CSS with glassmorphism
+├─ lib/               # Utility functions (formatting, helpers)
+├─ .env.example       # Example environment variables
+├─ next.config.mjs    # Next.js configuration
+├─ package.json       # Project metadata & scripts
+└─ README.md          # You are reading it now!
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Development
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-"# videoviewer" 
+- **Styling** – All styles are written in vanilla CSS using CSS custom properties for theming. No Tailwind or external UI libraries.
+- **Animations** – Subtle micro‑animations are implemented with `@keyframes` and `transition` for hover/focus effects.
+- **Testing** – Run `npm test` (Jest + React Testing Library) to execute unit tests.
+- **Linting** – `npm run lint` uses ESLint with the `next/core-web-vitals` preset.
+
+---
+
+## Building for Production
+
+```bash
+npm run build   # Generates an optimized production build in .next/
+```
+
+The output is a fully static‑optimized site ready for any edge CDN.
+
+---
+
+## Deployment
+
+The easiest way to deploy is via **Vercel** (the creators of Next.js):
+
+1. Push your code to GitHub.
+2. Import the repository in the Vercel dashboard.
+3. Vercel will automatically detect the Next.js project and set up the build pipeline.
+
+You can also deploy to other platforms (Netlify, Cloudflare Pages) by following the generic Next.js static export guide.
+
+---
+
+## Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository.
+2. Create a feature branch (`git checkout -b feat/awesome-feature`).
+3. Write tests for your changes.
+4. Ensure lint passes (`npm run lint`).
+5. Open a Pull Request with a clear description of the changes.
+
+Read our [CONTRIBUTING.md](https://github.com/eonsyn/videoviewer/blob/main/CONTRIBUTING.md) for detailed guidelines.
+
+---
+
+## License
+
+Distributed under the **MIT License**. See `LICENSE` for more information.
+
+---
+
+*Made with ❤️ by the eonsyn team.*

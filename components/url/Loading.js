@@ -2,7 +2,7 @@ import React from "react";
 
 export default function Loading() {
   return (
-    <div className="relative glass w-full h-[100vh] flex items-center justify-center overflow-hidden rounded-2xl bg-gray-200/60 dark:bg-gray-800/60 shadow-inner filter-goo">
+    <div className="relative glass w-full h-[50vh] flex items-center justify-center overflow-hidden rounded-2xl bg-gray-200/60 dark:bg-gray-800/60 shadow-inner filter-goo">
 
       {/* 1. Bounding Border */}
       <div className="absolute w-full h-full border-2 border-dashed border-primary/30 rounded-xl pointer-events-none"></div>

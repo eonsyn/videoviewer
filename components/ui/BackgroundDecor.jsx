@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function BackgroundDecor() {
   return (
-    <>
+    <div className="relative h-full w-[100vw] overflow-hidden">
       {/* Background orbs */}
       <div style={{
         position: 'absolute', top: '10%', left: '15%',
@@ -34,6 +34,6 @@ export default function BackgroundDecor() {
       <style>{`
         @keyframes orb-float { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-25px) scale(1.03); } }
       `}</style>
-    </>
+    </div>
   );
 }

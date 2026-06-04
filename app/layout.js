@@ -40,8 +40,8 @@ export default function RootLayout({ children }) {
           gtag('config', 'G-WZL37ER1NV', { page_path: window.location.pathname });
         `}</Script>
       </head>
-      <body className="-mt-20" style={{ background: '#080b12', minHeight: '100vh' }} suppressHydrationWarning>
-        <BackgroundDecor />
+      <body className="-mt-20 pt-10" style={{ background: '#080b12', minHeight: '100vh' }} suppressHydrationWarning>
+        {/* <BackgroundDecor /> */}
         <HistoryProvider>
           <Navbar />
           <main className="-mt-16" style={{ minHeight: '100vh' }}>

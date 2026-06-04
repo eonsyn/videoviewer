@@ -156,7 +156,7 @@ export default function TakeUrl() {
               pointerEvents: url ? 'auto' : 'none',
             }}>
               {loading ? <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <ArrowRight size={18} />}
-              {loading ? 'Processing...' : 'Generate Download Link'}
+              {loading ? 'Processing...' : 'Download Link'}
             </Link>
 
             {/* Hint */}

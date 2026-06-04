@@ -17,7 +17,7 @@ export function Button({ children, variant = "default", className = "", onClick,
       boxShadow: '0 4px 15px rgba(59,130,246,0.3)',
     },
     outline: {
-      background: 'rgba(255,255,255,0.04)',
+      background: 'rgba(197, 57, 57, 0.04)',
       color: '#a0aec0',
       border: '1px solid rgba(255,255,255,0.1)',
       boxShadow: 'none',

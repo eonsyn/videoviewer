@@ -1,9 +1,8 @@
 import "./globals.css";
 import Navbar from "@/components/navbar/Navbar";
-import Footer from '@/components/footer/Footer';
+import Footer from "@/components/footer/Footer";
 import Script from "next/script";
-import BackgroundDecor from "@/components/ui/BackgroundDecor";
-import { HistoryProvider } from '@/components/history/HistoryProvider';
+import { HistoryProvider } from "@/components/history/HistoryProvider";
 
 export const metadata = {
   title: "TeraFetch | Free TeraBox Video & File Downloader",
@@ -29,7 +28,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <meta name="google-site-verification" content="a519RGXXnU8_HDFGvb_9NLkro6BAy_BnCXPq8fhFTkY" />
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-WZL37ER1NV" strategy="afterInteractive" />
@@ -40,11 +39,10 @@ export default function RootLayout({ children }) {
           gtag('config', 'G-WZL37ER1NV', { page_path: window.location.pathname });
         `}</Script>
       </head>
-      <body className="-mt-20 pt-10" style={{ background: '#080b12', minHeight: '100vh' }} suppressHydrationWarning>
-        {/* <BackgroundDecor /> */}
+      <body suppressHydrationWarning style={{ background: "#060910", minHeight: "100vh" }}>
         <HistoryProvider>
           <Navbar />
-          <main className="-mt-16" style={{ minHeight: '100vh' }}>
+          <main style={{ minHeight: "100vh", paddingTop: "60px" }}>
             {children}
           </main>
           <Footer />

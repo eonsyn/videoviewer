@@ -1,199 +1,144 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Clipboard, ArrowRight, Link2, CheckCircle, Loader } from "lucide-react";
+import { Clipboard, ArrowRight, Link2, CheckCircle, Loader2 } from "lucide-react";
 import { usePathname } from "next/navigation";
+
 export default function TakeUrl() {
-  const [url, setUrl] = useState('');
+  const [url, setUrl] = useState("");
   const [pasted, setPasted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [focused, setFocused] = useState(false);
   const inputRef = useRef(null);
   const pathname = usePathname();
 
-  useEffect(() => {
-    // Clear URL and pasted flag whenever the route changes (pathname updates)
-    setUrl('');
-    setPasted(false);
-  }, [pathname]);
+  useEffect(() => { setUrl(""); setPasted(false); }, [pathname]);
+
   const handlePaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
       setUrl(text);
       setPasted(true);
+      inputRef.current?.focus();
       setTimeout(() => setPasted(false), 2000);
-    } catch (err) {
-      console.error("Clipboard access failed:", err);
-    }
+    } catch { }
   };
-
-  const downloadPath = url ? `/download?url=${encodeURIComponent(url)}` : "#";
 
   const handleDownload = () => {
     if (!url) return;
     setLoading(true);
-    // clear input after initiating download
-    setUrl('');
-    setPasted(false);
+    setUrl(""); setPasted(false);
     setTimeout(() => setLoading(false), 800);
   };
 
+  const downloadPath = url ? `/download?url=${encodeURIComponent(url)}` : "#";
+
   return (
-    <section id="url-input" className="md:px-32 py-10" >
-      <div className=" w-full md:max-w-[720px]" style={{ margin: '0 0' }}>
-
-        {/* --- Smooth Glowing Card Wrapper --- */}
+    <div style={{ width: "100%", maxWidth: "600px", margin: "0 auto" }}>
+      {/* Card with animated border */}
+      <div style={{ position: "relative", borderRadius: "20px", isolation: "isolate" }}>
+        {/* Spinning conic border */}
         <div style={{
-          position: 'relative',
-          borderRadius: '20px',
-          padding: '1px',
-          background: 'rgba(255, 255, 255, 0.05)',
-          overflow: 'hidden',
-          boxShadow: '0 40px 80px rgba(0,0,0,0.6)',
-          isolation: 'isolate',
-        }}>
-
-          {/* Ambient Rotating Glow Layer */}
+          position: "absolute", inset: "-1px", borderRadius: "21px",
+          background: focused
+            ? "conic-gradient(from 0deg, transparent 60deg, #4f8df5 140deg, #2dd4a4 200deg, transparent 300deg)"
+            : "rgba(255,255,255,0.07)",
+          zIndex: 0, transition: "background 0.4s ease",
+        }} />
+        {focused && (
           <div style={{
-            position: 'absolute',
-            top: '-100%',
-            left: '-100%',
-            width: '300%',
-            height: '300%',
-            background: 'conic-gradient(from 0deg, transparent 40deg, #3b82f6 140deg, #34d399 220deg, transparent 320deg)',
-            animation: 'rotateCardBorder 7s linear infinite',
-            zIndex: 1,
-            pointerEvents: 'none',
-            filter: 'blur(35px)',
-            opacity: 0.85,
+            position: "absolute", inset: "-1px", borderRadius: "21px",
+            background: "conic-gradient(from 0deg, transparent 60deg, #4f8df5 140deg, #2dd4a4 200deg, transparent 300deg)",
+            animation: "border-spin 4s linear infinite",
+            zIndex: 0, filter: "blur(2px)", opacity: 0.6,
           }} />
+        )}
 
-          {/* Main Card Content Body */}
-          <div style={{
-            position: 'relative',
-            zIndex: 2,
-            background: 'rgb(13, 19, 31)',
-            borderRadius: '19px',
-            padding: '32px',
-          }}>
-
-            {/* Input Element Area */}
-            <div style={{ position: 'relative', marginBottom: '16px' }}>
-              <div style={{
-                position: 'absolute', left: '16px', top: '50%',
-                transform: 'translateY(-50%)',
-                color: isInputFocused ? '#3b82f6' : '#4a5568',
-                transition: 'color 0.2.5s ease',
-                zIndex: 3,
-              }}>
-                <Link2 size={18} />
-              </div>
-
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="https://1024terabox.com/s/..."
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '16px 52px 16px 48px',
-                  borderRadius: '12px',
-                  color: '#e8edf5',
-                  fontSize: '15px',
-                  outline: 'none',
-                  fontFamily: 'DM Sans, sans-serif',
-                  position: 'relative',
-                  zIndex: 2,
-
-                  // --- NEW: Refined Translucent Border Behavior ---
-                  // 50% Opacity Theme Blue normally, 100% Solid Solid Blue on Focus
-                  border: isInputFocused
-                    ? '1px solid rgb(59, 130, 246)'
-                    : '1px solid rgba(59, 130, 246, 0.5)',
-
-                  // Clean adaptive background color transition
-                  background: isInputFocused
-                    ? 'rgba(59, 130, 246, 0.08)'
-                    : 'rgba(59, 130, 246, 0.03)',
-
-                  // Enhanced focus ring lighting effect
-                  boxShadow: isInputFocused
-                    ? '0 0 25px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.02)'
-                    : '0 4px 12px rgba(0, 0, 0, 0.1)',
-
-                  transition: 'all 0.25s ease-in-out',
-                }}
-                onFocus={() => setIsInputFocused(true)}
-                onBlur={() => setIsInputFocused(false)}
-              />
-
-              <button onClick={handlePaste} title="Paste from clipboard" style={{
-                position: 'absolute', right: '12px', top: '50%',
-                transform: 'translateY(-50%)',
-                padding: '6px',
-                borderRadius: '8px',
-                background: pasted ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.05)',
-                border: pasted ? '1px solid rgba(52,211,153,0.3)' : '1px solid rgba(255,255,255,0.1)',
-                color: pasted ? '#34d399' : '#7a8799',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex', alignItems: 'center',
-                zIndex: 3,
-              }}>
-                {pasted ? <CheckCircle size={18} /> : <Clipboard size={18} />}
-              </button>
+        {/* Card body */}
+        <div style={{
+          position: "relative", zIndex: 1, background: "#0c1018",
+          borderRadius: "19px", padding: "20px",
+        }}>
+          {/* Input row */}
+          <div style={{ position: "relative", marginBottom: "12px" }}>
+            <div style={{
+              position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)",
+              color: focused ? "#4f8df5" : "#3d4f64", transition: "color 0.2s", zIndex: 2,
+            }}>
+              <Link2 size={16} />
             </div>
 
-            {/* Download Button */}
-            <Link href={downloadPath} onClick={handleDownload} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-              width: '100%',
-              padding: '16px',
-              borderRadius: '12px',
-              fontSize: '16px',
-              fontWeight: 600,
-              color: url ? 'white' : '#4a5568',
-              background: url
-                ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
-                : 'rgba(255,255,255,0.04)',
-              border: url ? 'none' : '1px solid rgba(255,255,255,0.07)',
-              textDecoration: 'none',
-              cursor: url ? 'pointer' : 'not-allowed',
-              boxShadow: url ? '0 8px 25px rgba(59,130,246,0.35)' : 'none',
-              transition: 'all 0.25s ease',
-              pointerEvents: url ? 'auto' : 'none',
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Paste TeraBox link here…"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              style={{
+                width: "100%", padding: "14px 48px 14px 42px",
+                borderRadius: "12px", fontSize: "14px", fontWeight: 400,
+                color: "#f0f4fc", fontFamily: "'Geist', sans-serif",
+                background: focused ? "rgba(79,141,245,0.06)" : "rgba(255,255,255,0.03)",
+                border: focused ? "1px solid rgba(79,141,245,0.35)" : "1px solid rgba(255,255,255,0.07)",
+                outline: "none", transition: "all 0.2s ease",
+                boxSizing: "border-box",
+              }}
+            />
+
+            <button onClick={handlePaste} title="Paste from clipboard" style={{
+              position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)",
+              padding: "6px 8px", borderRadius: "8px", zIndex: 3, cursor: "pointer",
+              background: pasted ? "rgba(45,212,164,0.1)" : "rgba(255,255,255,0.05)",
+              border: "1px solid " + (pasted ? "rgba(45,212,164,0.25)" : "rgba(255,255,255,0.08)"),
+              color: pasted ? "#2dd4a4" : "#6b7a8d",
+              display: "flex", alignItems: "center", transition: "all 0.2s",
             }}>
-              {loading ? <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <ArrowRight size={18} />}
-              {loading ? 'Processing...' : 'Download Link'}
-            </Link>
-
-            {/* Hint */}
-            <p className="md:block hidden" style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px', color: '#4a5568' }}>
-              Supports 1024terabox.com · teraboxshare.com · terabox.app
-            </p>
+              {pasted ? <CheckCircle size={15} /> : <Clipboard size={15} />}
+            </button>
           </div>
-        </div>
 
-        {/* Mini ad strip */}
-        <div style={{
-          marginTop: '32px',
-          height: '60px',
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px dashed rgba(255,255,255,0.06)',
-          borderRadius: '10px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#4a5568', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase',
-        }}>
-          Advertisement
+          {/* Download button */}
+          <Link href={downloadPath} className="border-2 border border-white" onClick={handleDownload} style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+            width: "100%", padding: "14px", borderRadius: "12px",
+            fontSize: "15px", fontWeight: 600,
+            color: url ? "#fff" : "#3d4f64",
+            background: url
+              ? "linear-gradient(135deg, #4f8df5 0%, #2563eb 100%)"
+              : "rgba(255,255,255,0.04)",
+            border: url ? "none" : "1px solid rgba(255,255,255,0.06)",
+            pointerEvents: url ? "auto" : "none",
+            boxShadow: url ? "0 4px 20px rgba(79,141,245,0.35)" : "none",
+            transition: "all 0.25s ease",
+            textDecoration: "none", cursor: url ? "pointer" : "default",
+          }}
+            onMouseEnter={e => { if (url) e.currentTarget.style.boxShadow = "0 6px 28px rgba(79,141,245,0.5)"; }}
+            onMouseLeave={e => { if (url) e.currentTarget.style.boxShadow = "0 4px 20px rgba(79,141,245,0.35)"; }}
+          >
+            {loading
+              ? <><Loader2 size={16} className="spin" /> Processing…</>
+              : <><ArrowRight size={16} /> Get Download Link</>
+            }
+          </Link>
         </div>
       </div>
 
+      {/* Ad placeholder */}
+      <div style={{
+        marginTop: "20px", height: "56px", borderRadius: "10px",
+        background: "rgba(255,255,255,0.018)", border: "1px dashed rgba(255,255,255,0.05)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        color: "#2d3a4a", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase",
+      }}>Advertisement</div>
+
       <style>{`
+        @keyframes border-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spin { animation: spin 0.9s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes rotateCardBorder { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        input::placeholder { color: #3a4555; }
+        input::placeholder { color: #2d3a4a !important; }
       `}</style>
-    </section>
+    </div>
   );
 }

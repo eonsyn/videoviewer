@@ -1,29 +1,29 @@
 import React from "react";
 
-function VideoLoader() {
+export default function VideoLoader() {
   return (
-    <div className="w-full flex flex-col gap-6 items-center animate-pulse">
-      {/* Simulate 3 video cards while loading */}
+    <div style={{ width: "100%", maxWidth: "540px", margin: "0 auto" }}>
       {[1].map((i) => (
-        <div
-          key={i}
-          className="w-full max-w-lg bg-gray-900 border border-gray-800 rounded-xl p-4 shadow-md flex flex-col items-center text-center"
-        >
-          {/* Title Placeholder */}
-          <div className="w-3/4 h-5 bg-gray-700 rounded mb-4"></div>
-
-          {/* Video Thumbnail Placeholder */}
-          <div className="w-full h-48 bg-gray-800 rounded-lg mb-4"></div>
-
-          {/* File Size Placeholder */}
-          <div className="w-1/3 h-4 bg-gray-700 rounded mb-3"></div>
-
-          {/* Button Placeholder */}
-          <div className="w-1/2 h-10 bg-gray-700 rounded-lg"></div>
+        <div key={i} style={{
+          background: "#0c1018", border: "1px solid rgba(255,255,255,0.06)",
+          borderRadius: "16px", padding: "20px", overflow: "hidden", position: "relative",
+        }}>
+          {/* Shimmer effect */}
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.02) 50%, transparent 100%)",
+            animation: "shimmer 1.5s infinite",
+          }} />
+          
+          <div style={{ width: "65%", height: "14px", background: "rgba(255,255,255,0.05)", borderRadius: "6px", marginBottom: "16px" }} />
+          <div style={{ width: "100%", height: "200px", background: "rgba(255,255,255,0.04)", borderRadius: "10px", marginBottom: "16px" }} />
+          <div style={{ width: "40%", height: "12px", background: "rgba(255,255,255,0.04)", borderRadius: "6px", marginBottom: "12px" }} />
+          <div style={{ width: "50%", height: "38px", background: "rgba(255,255,255,0.04)", borderRadius: "10px" }} />
         </div>
       ))}
+      <style>{`
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+      `}</style>
     </div>
   );
 }
-
-export default VideoLoader;

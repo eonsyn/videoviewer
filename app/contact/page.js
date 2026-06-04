@@ -1,8 +1,4 @@
-
-
-
-
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Send, Mail, ArrowRight } from "lucide-react";
 import ContactCTA from "@/components/contact/ContactCTA";
 
 export const metadata = {
@@ -10,62 +6,56 @@ export const metadata = {
   description: "Join the official TeraFetch Telegram channel for updates, new features, and direct support.",
 };
 
+export const dynamic = "force-static";
+
 export default function ContactPage() {
   return (
-    <div style={{ background: '#080b12', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 24px' }}>
-      <div style={{ maxWidth: '560px', width: '100%', textAlign: 'center' }}>
+    <div style={{ background: "#060910", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 20px" }}>
+      <div style={{ maxWidth: "520px", width: "100%", textAlign: "center" }}>
         {/* Icon */}
         <div style={{
-          width: '72px', height: '72px',
-          background: 'linear-gradient(135deg, rgba(59,130,246,0.2), rgba(52,211,153,0.15))',
-          border: '1px solid rgba(59,130,246,0.3)',
-          borderRadius: '20px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 24px',
-          color: '#60a5fa',
+          width: "64px", height: "64px", borderRadius: "16px",
+          background: "linear-gradient(135deg, rgba(79,141,245,0.15), rgba(45,212,164,0.1))",
+          border: "1px solid rgba(79,141,245,0.25)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          margin: "0 auto 20px", color: "#93c5fd",
         }}>
-          <MessageCircle size={32} />
+          <MessageCircle size={28} />
         </div>
 
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: '6px',
-          padding: '4px 12px', borderRadius: '100px',
-          background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)',
-          color: '#60a5fa', fontSize: '12px', fontWeight: 600,
-          textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '20px',
-        }}>
-          Contact
-        </span>
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: "6px",
+          padding: "4px 12px", borderRadius: "100px", marginBottom: "16px",
+          background: "rgba(79,141,245,0.08)", border: "1px solid rgba(79,141,245,0.15)",
+          color: "#93c5fd", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em",
+        }}>Contact</div>
 
         <h1 style={{
-          fontFamily: 'Syne, sans-serif',
-          fontSize: 'clamp(32px, 6vw, 52px)',
-          fontWeight: 800, color: '#e8edf5',
-          letterSpacing: '-0.03em', marginBottom: '16px',
-        }}>Get In Touch</h1>
+          fontFamily: "'Geist', sans-serif", fontSize: "clamp(28px, 5vw, 42px)",
+          fontWeight: 800, color: "#f0f4fc", letterSpacing: "-0.03em", marginBottom: "14px",
+        }}>Get in Touch</h1>
 
-        <p style={{ color: '#7a8799', fontSize: '16px', lineHeight: 1.75, fontWeight: 300, marginBottom: '40px' }}>
-          Have a question, found a bug, or want to share feedback? Join our active Telegram community for instant support and the latest updates.
+        <p style={{ color: "#6b7a8d", fontSize: "15px", lineHeight: 1.7, marginBottom: "36px" }}>
+          Have a question, issue, or feedback? Join our Telegram community for direct support, announcements, and updates from the TeraFetch team.
         </p>
 
-        {/* Primary CTA */}
+        <a href="https://t.me/+2fvOF7WT0YBjZDM9" target="_blank" rel="noopener noreferrer" style={{
+          display: "inline-flex", alignItems: "center", gap: "9px",
+          padding: "14px 28px", borderRadius: "12px",
+          fontSize: "15px", fontWeight: 600, color: "white",
+          background: "linear-gradient(135deg, #4f8df5, #2563eb)",
+          boxShadow: "0 4px 20px rgba(79,141,245,0.4)",
+          textDecoration: "none", transition: "opacity 0.2s",
+        }}
+        >
+          <Send size={16} /> Join Our Telegram
+        </a>
+
+        <p style={{ marginTop: "20px", color: "#3d4f64", fontSize: "13px" }}>
+          We typically respond within a few hours.
+        </p>
+
         <ContactCTA />
-
-        <p style={{ color: '#4a5568', fontSize: '13px', marginBottom: '48px' }}>
-          Usually respond within 24 hours
-        </p>
-
-        {/* Feature chips */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
-          {['Bug Reports', 'Feature Requests', 'Download Help', 'General Questions'].map(tag => (
-            <span key={tag} style={{
-              padding: '6px 14px', borderRadius: '8px',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.07)',
-              color: '#7a8799', fontSize: '13px', fontWeight: 400,
-            }}>{tag}</span>
-          ))}
-        </div>
       </div>
     </div>
   );

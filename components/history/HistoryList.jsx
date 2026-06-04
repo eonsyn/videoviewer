@@ -1,58 +1,104 @@
 "use client";
 import React from "react";
 import { useHistory } from "@/components/history/HistoryProvider";
-import { FaPlay, FaTrash } from "react-icons/fa6";
+import { Play, Trash2, Clock, Trash } from "lucide-react";
 
 export default function HistoryList() {
   const { history, deleteEntry, clearHistory } = useHistory();
 
   const handleClearAll = () => {
-    if (window.confirm('Are you sure you want to delete all history?')) {
-      clearHistory();
-    }
+    if (window.confirm("Delete all history?")) clearHistory();
   };
 
-  if (!history || history.length === 0) {
-    return null; // No history to show
-  }
+  if (!history || history.length === 0) return null;
 
   return (
-    <div id="history" className="w-full max-w-6xl mx-auto mt-12 p-4 bg-gray-900/30 backdrop-blur-sm rounded-xl shadow-lg">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-white">Watch History</h2>
-        <button
-          onClick={handleClearAll}
-          className="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded"
-        >
-          Delete All
+    <div style={{
+      width: "100%", maxWidth: "640px", margin: "0 auto",
+      marginTop: "32px",
+      background: "#0c1018", border: "1px solid rgba(255,255,255,0.06)",
+      borderRadius: "16px", overflow: "hidden",
+    }}>
+      {/* Header */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "16px 20px",
+        borderBottom: "1px solid rgba(255,255,255,0.05)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <Clock size={15} color="#6b7a8d" />
+          <span style={{ fontFamily: "'Geist', sans-serif", fontSize: "14px", fontWeight: 600, color: "#f0f4fc" }}>Watch History</span>
+          <span style={{
+            padding: "1px 8px", borderRadius: "100px",
+            background: "rgba(79,141,245,0.1)", border: "1px solid rgba(79,141,245,0.18)",
+            fontSize: "11px", fontWeight: 600, color: "#93c5fd",
+          }}>{history.length}</span>
+        </div>
+        <button onClick={handleClearAll} style={{
+          display: "flex", alignItems: "center", gap: "5px",
+          padding: "5px 10px", borderRadius: "7px",
+          background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.15)",
+          color: "#f87171", fontSize: "12px", fontWeight: 500, cursor: "pointer",
+          transition: "all 0.2s",
+        }}>
+          <Trash size={12} /> Clear all
         </button>
       </div>
-      <ul className="space-y-2">
+
+      {/* Items */}
+      <div style={{ maxHeight: "360px", overflowY: "auto" }}>
         {history.map((entry) => (
-          <li key={entry.url} className="flex items-center justify-between bg-gray-800/50 p-2 rounded">
-            <div className="flex items-center space-x-3">
-              {entry.thumbnail && (
-                <img src={entry.thumbnail} alt={entry.title} className="w-12 h-8 object-cover rounded" />
-              )}
-              <span className="text-white truncate max-w-xs">{entry.title || entry.url}</span>
+          <div key={entry.url} style={{
+            display: "flex", alignItems: "center", gap: "12px",
+            padding: "12px 20px",
+            borderBottom: "1px solid rgba(255,255,255,0.04)",
+            transition: "background 0.15s",
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
+          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          >
+            {/* Thumbnail */}
+            <div style={{
+              width: "52px", height: "36px", flexShrink: 0, borderRadius: "6px",
+              background: "#161e2e", overflow: "hidden",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              {entry.thumbnail
+                ? <img src={entry.thumbnail} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <Play size={14} color="#3d4f64" />
+              }
             </div>
-            <div className="flex space-x-2">
-                  <button
-                  onClick={() => window.location.href = `/download?url=${encodeURIComponent(entry.url)}`}
-                  className="px-4 py-2 text-base bg-green-600 hover:bg-green-700 text-white rounded flex items-center gap-2"
-                >
-                  <FaPlay className="text-lg" />
-                </button>
-                <button
-                  onClick={() => deleteEntry(entry.url)}
-                  className="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded flex items-center gap-1"
-                >
-                  <FaTrash className="text-sm" />
-                </button>
+
+            {/* Title */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{
+                fontSize: "13px", color: "#9aa5b4", fontWeight: 500, margin: 0,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>{entry.title || entry.url}</p>
             </div>
-          </li>
+
+            {/* Actions */}
+            <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+              <button onClick={() => window.location.href = `/download?url=${encodeURIComponent(entry.url)}`} style={{
+                padding: "6px 10px", borderRadius: "7px", cursor: "pointer",
+                background: "rgba(45,212,164,0.08)", border: "1px solid rgba(45,212,164,0.18)",
+                color: "#2dd4a4", display: "flex", alignItems: "center", gap: "4px",
+                fontSize: "12px", fontWeight: 500, transition: "all 0.2s",
+              }}>
+                <Play size={11} /> Play
+              </button>
+              <button onClick={() => deleteEntry(entry.url)} style={{
+                padding: "6px 8px", borderRadius: "7px", cursor: "pointer",
+                background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.12)",
+                color: "#f87171", display: "flex", alignItems: "center",
+                transition: "all 0.2s",
+              }}>
+                <Trash2 size={12} />
+              </button>
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

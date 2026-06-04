@@ -1,333 +1,110 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700;800;900&display=swap');
 @import 'tailwindcss';
 
 @theme inline {
-  --color-background: #080b12;
-  --color-surface: #0e1420;
-  --color-surface-2: #131927;
-  --color-surface-3: #1a2235;
-  --color-border: rgba(255,255,255,0.07);
-  --color-border-active: rgba(99,179,255,0.35);
-  --color-foreground: #e8edf5;
-  --color-muted: #7a8799;
-  --color-primary: #3b82f6;
-  --color-primary-glow: rgba(59,130,246,0.25);
-  --color-accent: #60a5fa;
-  --color-accent-2: #34d399;
-  --color-danger: #f87171;
+  --color-bg: #060910;
+  --color-surface: #0c1018;
+  --color-surface-2: #111722;
+  --color-surface-3: #161e2e;
+  --color-border: rgba(255,255,255,0.06);
+  --color-border-hover: rgba(255,255,255,0.12);
+  --color-border-active: rgba(99,179,255,0.4);
+  --color-fg: #f0f4fc;
+  --color-muted: #6b7a8d;
+  --color-subtle: #9aa5b4;
+  --color-primary: #4f8df5;
+  --color-primary-dim: rgba(79,141,245,0.12);
+  --color-primary-glow: rgba(79,141,245,0.3);
+  --color-green: #2dd4a4;
+  --color-green-dim: rgba(45,212,164,0.1);
+  --color-amber: #f5a623;
+  --color-red: #f87171;
 }
 
-html {
-  scroll-behavior: smooth;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-}
+html { scroll-behavior: smooth; }
 
 body {
-  background: #080b12;
-  color: #e8edf5;
-  font-family: 'DM Sans', sans-serif;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: 'Geist', system-ui, sans-serif;
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #080b12; }
-::-webkit-scrollbar-thumb { background: #1e2d45; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: #1e2d45; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-primary); }
 
-/* Selection */
-::selection { background: rgba(59,130,246,0.3); color: #e8edf5; }
+::selection { background: rgba(79,141,245,0.25); color: #f0f4fc; }
 
 /* Animations */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(79,141,245,0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(79,141,245,0); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-12px) rotate(1deg); }
+  66% { transform: translateY(-6px) rotate(-1deg); }
+}
+@keyframes border-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 20px rgba(59,130,246,0.3); }
-  50% { box-shadow: 0 0 40px rgba(59,130,246,0.6), 0 0 80px rgba(59,130,246,0.2); }
-}
+.animate-fadeUp { animation: fadeUp 0.5s ease forwards; }
+.animate-fadeIn { animation: fadeIn 0.4s ease forwards; }
+.spin { animation: spin 0.9s linear infinite; }
 
-@keyframes orb-float {
-  0%, 100% { transform: translateY(0px) scale(1); }
-  50% { transform: translateY(-20px) scale(1.05); }
-}
-
-@keyframes scan {
-  0% { top: 0; }
-  100% { top: 100%; }
-}
-
-.animate-fadeUp { animation: fadeUp 0.6s ease-out forwards; }
-.animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
-.animate-shimmer { 
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-  background-size: 200% auto;
-  animation: shimmer 2.5s linear infinite;
-}
-.animate-pulse-glow { animation: pulseGlow 3s ease-in-out infinite; }
-
-/* Glass morphism utility */
-.glass {
-  background: rgba(14,20,32,0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.07);
-}
-
-.glass-light {
-  background: rgba(255,255,255,0.03);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.06);
-}
-
-/* Glow utilities */
-.glow-blue { box-shadow: 0 0 30px rgba(59,130,246,0.4); }
-.glow-green { box-shadow: 0 0 30px rgba(52,211,153,0.4); }
-.text-glow { text-shadow: 0 0 30px rgba(59,130,246,0.5); }
-
-/* Input focus ring */
-.input-ring:focus {
-  outline: none;
-  border-color: rgba(59,130,246,0.6);
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.15), inset 0 0 20px rgba(59,130,246,0.05);
-}
-
-/* Heading font */
-h1, h2, h3, h4 {
-  font-family: 'Syne', sans-serif;
-  letter-spacing: -0.02em;
-}
-
-/* Card hover */
-.card-hover {
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-}
-.card-hover:hover {
-  transform: translateY(-3px);
-  border-color: rgba(59,130,246,0.3);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 30px rgba(59,130,246,0.1);
-}
-
-/* Gradient text */
+/* Utility */
 .gradient-text {
-  background: linear-gradient(135deg, #60a5fa, #34d399);
+  background: linear-gradient(135deg, #93c5fd 0%, #5eead4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Noise texture overlay */
-.noise::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events: none;
-  opacity: 0.4;
+.glass {
+  background: rgba(12, 16, 24, 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--color-border);
 }
 
-
-
-/* 1. The Liquid/Gooey Container Magic */
-.filter-goo {
-  /* High contrast + blur on children creates the fluid/melting effect */
-  filter: contrast(20);
-  background: inherit; /* Keeps background styles working correctly with contrast */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
 
-/* 2. Animation Keyframes */
-
-/* Left element moves right, splashes into center, dissolves, and returns */
-@keyframes splashLeft {
-  0%, 100% {
-    transform: translateX(-80px) scale(1);
-  }
-  35%, 65% {
-    transform: translateX(0px) scale(1.2); /* Splash into center */
-  }
-  50% {
-    transform: translateX(0px) scale(0); /* Completely dissolved/absorbed */
-    opacity: 0;
-  }
+.card:hover {
+  border-color: var(--color-border-hover);
 }
 
-/* Center element reacts to the splashes, compresses, dissolves, and reforms */
-@keyframes splashCenter {
-  0%, 100% {
-    transform: scale(1);
-  }
-  35%, 65% {
-    transform: scale(1.4); /* Expands as side droplets splash into it */
-  }
-  50% {
-    transform: scale(0); /* Dissolves at the peak of the impact */
-    opacity: 0;
-  }
-}
-
-/* Right element moves left, splashes into center, dissolves, and returns */
-@keyframes splashRight {
-  0%, 100% {
-    transform: translateX(80px) scale(1);
-  }
-  35%, 65% {
-    transform: translateX(0px) scale(1.2); /* Splash into center */
-  }
-  50% {
-    transform: translateX(0px) scale(0); /* Completely dissolved/absorbed */
-    opacity: 0;
-  }
-}
-
-/* 3. Animation Helper Classes */
-.animate-splashLeft {
-  animation: splashLeft 2.5s cubic-bezier(0.77, 0, 0.175, 1) infinite;
-}
-
-.animate-splashCenter {
-  animation: splashCenter 2.5s cubic-bezier(0.77, 0, 0.175, 1) infinite;
-}
-
-.animate-splashRight {
-  animation: splashRight 2.5s cubic-bezier(0.77, 0, 0.175, 1) infinite;
-}
-
-
-/* 1. The Gooey Filter Base */
-.filter-goo {
-  filter: contrast(25) hue-rotate(0deg);
-  background: inherit;
-}
-
-/* 2. Asymmetric "Random" Motion Keyframes */
-
-@keyframes chaoticSplash1 {
-  0%, 100% { transform: translate3d(-100px, -40px, 0) scale(1); }
-  25%      { transform: translate3d(80px, 30px, 0) scale(1.4); } /* Merges right */
-  45%      { transform: translate3d(0px, 0px, 0) scale(0); opacity: 0; } /* Dissolves at center */
-  70%      { transform: translate3d(-60px, 20px, 0) scale(1.1); }
-}
-
-@keyframes chaoticSplash2 {
-  0%, 100% { transform: translate3d(90px, 40px, 0) scale(1.2); }
-  30%      { transform: translate3d(-40px, -30px, 0) scale(0.2); } /* Shrinks away */
-  55%      { transform: translate3d(40px, -20px, 0) scale(1.5); } /* Splashes wide */
-  80%      { transform: translate3d(-90px, 10px, 0) scale(0.8); }
-}
-
-@keyframes chaoticSplash3 {
-  0%, 100% { transform: translate3d(-30px, 50px, 0) scale(0.8); }
-  20%      { transform: translate3d(100px, -40px, 0) scale(1.3); } /* Splashes top right corner */
-  50%      { transform: translate3d(0px, 20px, 0) scale(0); } /* Melts away */
-  75%      { transform: translate3d(-100px, -30px, 0) scale(1.1); }
-}
-
-@keyframes chaoticSplash4 {
-  0%, 100% { transform: translate3d(20px, -50px, 0) scale(1.1); }
-  35%      { transform: translate3d(-80px, 40px, 0) scale(1.6); } /* Heavy impact bottom left */
-  60%      { transform: translate3d(70px, -10px, 0) scale(0.1); opacity: 0; }
-  85%      { transform: translate3d(-10px, -20px, 0) scale(1.3); }
-}
-
-/* 3. Animation Classes with mixed durations for chaotic feel */
-.animate-chaoticSplash1 {
-  animation: chaoticSplash1 4s cubic-bezier(0.445, 0.05, 0.55, 0.95) infinite;
-}
-
-.animate-chaoticSplash2 {
-  animation: chaoticSplash2 3.3s cubic-bezier(0.39, 0.575, 0.565, 1) infinite;
-}
-
-.animate-chaoticSplash3 {
-  animation: chaoticSplash3 4.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
-}
-
-.animate-chaoticSplash4 {
-  animation: chaoticSplash4 3.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite;
-}
-
-/* Liquid/Gooey Container Filter */
-.filter-goo {
-  filter: contrast(25);
-  background: inherit;
-}
-
-/* --- 1. Loading Dots Animation --- */
-@keyframes loadingDots {
-  0%, 100% { content: ""; }
-  25% { content: "."; }
-  50% { content: ".."; }
-  75% { content: "..."; }
-}
-
-.animate-loadingDots::after {
-  content: "";
-  animation: loadingDots 3s steps(1) infinite;
-}
-
-
-/* --- 2. Heavy, Slow-Motion Liquid Keyframes --- */
-
-@keyframes slowSplash1 {
-  0%, 100% { transform: translate3d(-90px, -30px, 0) scale(1); }
-  30%      { transform: translate3d(60px, 25px, 0) scale(1.3); } /* Drift & merge */
-  50%      { transform: translate3d(0px, 0px, 0) scale(0); opacity: 0; } /* Dissolve */
-  75%      { transform: translate3d(-50px, 15px, 0) scale(1.1); }
-}
-
-@keyframes slowSplash2 {
-  0%, 100% { transform: translate3d(80px, 30px, 0) scale(1.1); }
-  25%      { transform: translate3d(-50px, -25px, 0) scale(0.3); } /* Shrinking down */
-  55%      { transform: translate3d(30px, -15px, 0) scale(1.4); } /* Big splash */
-  80%      { transform: translate3d(-70px, 10px, 0) scale(0.8); }
-}
-
-@keyframes slowSplash3 {
-  0%, 100% { transform: translate3d(-20px, 40px, 0) scale(0.9); }
-  35%      { transform: translate3d(80px, -30px, 0) scale(1.2); } /* Hits top right */
-  60%      { transform: translate3d(0px, 10px, 0) scale(0); opacity: 0; } /* Melts away */
-  85%      { transform: translate3d(-80px, -20px, 0) scale(1.0); }
-}
-
-@keyframes slowSplash4 {
-  0%, 100% { transform: translate3d(15px, -40px, 0) scale(1.2); }
-  40%      { transform: translate3d(-70px, 30px, 0) scale(1.5); } /* Hits bottom left */
-  65%      { transform: translate3d(50px, -10px, 0) scale(0.1); opacity: 0; }
-  85%      { transform: translate3d(-10px, -10px, 0) scale(1.1); }
-}
-
-
-/* --- 3. Animation Classes (Significantly Slowed Down) --- */
-.animate-slowSplash1 {
-  animation: slowSplash1 8.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
-
-.animate-slowSplash2 {
-  animation: slowSplash2 7.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
-
-.animate-slowSplash3 {
-  animation: slowSplash3 9.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
-
-.animate-slowSplash4 {
-  animation: slowSplash4 8.0s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
+/* Input reset */
+input { background: none; border: none; outline: none; color: inherit; }
+input::placeholder { color: var(--color-muted); }
+button { cursor: pointer; border: none; background: none; color: inherit; }
+a { color: inherit; text-decoration: none; }

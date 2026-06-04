@@ -6,35 +6,35 @@
   http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd"
 >
   <url>
-    <loc>https://teradownloader.netlify.app/</loc>
+    <loc>https://terafetch.netlify.app/</loc>
     <lastmod>2025-10-08T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
 
   <url>
-    <loc>https://teradownloader.netlify.app/about</loc>
+    <loc>https://terafetch.netlify.app/about</loc>
     <lastmod>2025-10-08T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://teradownloader.netlify.app/dmca-policy</loc>
+    <loc>https://terafetch.netlify.app/dmca-policy</loc>
     <lastmod>2025-10-08T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
-    <loc>https://teradownloader.netlify.app/privacy-policy</loc>
+    <loc>https://terafetch.netlify.app/privacy-policy</loc>
     <lastmod>2025-10-08T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
-    <loc>https://teradownloader.netlify.app/contact</loc>
+    <loc>https://terafetch.netlify.app/contact</loc>
     <lastmod>2025-10-08T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>

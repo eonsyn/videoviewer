@@ -14,6 +14,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
  * @typedef {Object} HistoryContextProps
  * @property {HistoryEntry[]} history
  * @property {(entry: Omit<HistoryEntry, 'watchedAt'>) => void} addEntry
+ * @property {(url: string) => void} deleteEntry
  * @property {() => void} clearHistory
  */
 
@@ -44,12 +45,21 @@ export const HistoryProvider = ({ children }) => {
   }, [history]);
 
   const addEntry = (entry) => {
-    const newEntry = { ...entry, watchedAt: Date.now() };
+    const newEntry = {
+      url: entry.url,
+      thumbnail: entry.thumbnail,
+      watchedAt: Date.now(),
+    };
     setHistory((prev) => {
       const filtered = prev.filter((e) => e.url !== newEntry.url);
       return [newEntry, ...filtered].slice(0, 100); // keep recent 100
     });
   };
+
+  const deleteEntry = (url) => {
+    setHistory((prev) => prev.filter((e) => e.url !== url));
+  };
+
 
   const clearHistory = () => {
     setHistory([]);
@@ -59,7 +69,7 @@ export const HistoryProvider = ({ children }) => {
   };
 
   return (
-    <HistoryContext.Provider value={{ history, addEntry, clearHistory }}>
+    <HistoryContext.Provider value={{ history, addEntry, deleteEntry, clearHistory }}>
       {children}
     </HistoryContext.Provider>
   );

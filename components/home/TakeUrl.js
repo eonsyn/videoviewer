@@ -1,15 +1,21 @@
 "use client";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Clipboard, ArrowRight, Link2, CheckCircle, Loader } from "lucide-react";
-
+import { usePathname } from "next/navigation";
 export default function TakeUrl() {
   const [url, setUrl] = useState('');
   const [pasted, setPasted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const inputRef = useRef(null);
+  const pathname = usePathname();
 
+  useEffect(() => {
+    // Clear URL and pasted flag whenever the route changes (pathname updates)
+    setUrl('');
+    setPasted(false);
+  }, [pathname]);
   const handlePaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
@@ -26,36 +32,39 @@ export default function TakeUrl() {
   const handleDownload = () => {
     if (!url) return;
     setLoading(true);
+    // clear input after initiating download
+    setUrl('');
+    setPasted(false);
     setTimeout(() => setLoading(false), 800);
   };
 
   return (
-    <section id="url-input" style={{ padding: '20px 10px' }}>
-      <div style={{ maxWidth: '720px', margin: '0 auto' }}>
-        
+    <section id="url-input" className="md:px-32 py-10" >
+      <div className=" w-full md:max-w-[720px]" style={{ margin: '0 0' }}>
+
         {/* --- Smooth Glowing Card Wrapper --- */}
         <div style={{
           position: 'relative',
           borderRadius: '20px',
-          padding: '1px', 
+          padding: '1px',
           background: 'rgba(255, 255, 255, 0.05)',
           overflow: 'hidden',
           boxShadow: '0 40px 80px rgba(0,0,0,0.6)',
-          isolation: 'isolate', 
+          isolation: 'isolate',
         }}>
-          
+
           {/* Ambient Rotating Glow Layer */}
           <div style={{
             position: 'absolute',
             top: '-100%',
             left: '-100%',
-            width: '300%', 
+            width: '300%',
             height: '300%',
             background: 'conic-gradient(from 0deg, transparent 40deg, #3b82f6 140deg, #34d399 220deg, transparent 320deg)',
             animation: 'rotateCardBorder 7s linear infinite',
             zIndex: 1,
             pointerEvents: 'none',
-            filter: 'blur(35px)', 
+            filter: 'blur(35px)',
             opacity: 0.85,
           }} />
 
@@ -63,11 +72,11 @@ export default function TakeUrl() {
           <div style={{
             position: 'relative',
             zIndex: 2,
-            background: 'rgb(13, 19, 31)', 
+            background: 'rgb(13, 19, 31)',
             borderRadius: '19px',
             padding: '32px',
           }}>
-            
+
             {/* Input Element Area */}
             <div style={{ position: 'relative', marginBottom: '16px' }}>
               <div style={{
@@ -96,29 +105,29 @@ export default function TakeUrl() {
                   fontFamily: 'DM Sans, sans-serif',
                   position: 'relative',
                   zIndex: 2,
-                  
+
                   // --- NEW: Refined Translucent Border Behavior ---
                   // 50% Opacity Theme Blue normally, 100% Solid Solid Blue on Focus
-                  border: isInputFocused 
-                    ? '1px solid rgb(59, 130, 246)' 
+                  border: isInputFocused
+                    ? '1px solid rgb(59, 130, 246)'
                     : '1px solid rgba(59, 130, 246, 0.5)',
-                  
+
                   // Clean adaptive background color transition
-                  background: isInputFocused 
-                    ? 'rgba(59, 130, 246, 0.08)' 
+                  background: isInputFocused
+                    ? 'rgba(59, 130, 246, 0.08)'
                     : 'rgba(59, 130, 246, 0.03)',
-                    
+
                   // Enhanced focus ring lighting effect
-                  boxShadow: isInputFocused 
-                    ? '0 0 25px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.02)' 
+                  boxShadow: isInputFocused
+                    ? '0 0 25px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.02)'
                     : '0 4px 12px rgba(0, 0, 0, 0.1)',
-                  
+
                   transition: 'all 0.25s ease-in-out',
                 }}
                 onFocus={() => setIsInputFocused(true)}
                 onBlur={() => setIsInputFocused(false)}
               />
-              
+
               <button onClick={handlePaste} title="Paste from clipboard" style={{
                 position: 'absolute', right: '12px', top: '50%',
                 transform: 'translateY(-50%)',
@@ -160,7 +169,7 @@ export default function TakeUrl() {
             </Link>
 
             {/* Hint */}
-            <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px', color: '#4a5568' }}>
+            <p className="md:block hidden" style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px', color: '#4a5568' }}>
               Supports 1024terabox.com · teraboxshare.com · terabox.app
             </p>
           </div>

@@ -1,13 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import Hls from "hls.js";
-import { IoReload } from "react-icons/io5";
+import { FaRotateRight, FaHistory } from "react-icons/fa";
 import { BsDownload } from "react-icons/bs";
 import Link from "next/link";
 import Loading from "./Loading.js";
-import TakeUrl from "@/components/home/TakeUrl";
+import { useHistory } from "@/components/history/HistoryProvider";
 import CustomPlayer from "./CustomPlayer";
+import TakeUrl from "../home/TakeUrl.js";
 export default function Converter({ token, url }) {
+  const { addEntry } = useHistory();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [videoList, setVideoList] = useState([]);
@@ -42,7 +44,6 @@ export default function Converter({ token, url }) {
             }),
           }
         );
-
         const data = await res.json();
 
         if (!res.ok || !data.success) {
@@ -89,6 +90,13 @@ export default function Converter({ token, url }) {
 
         setVideoList([videoObj]);
         setSelectedVideo(videoObj);
+      // Add to history
+      addEntry({
+        url,
+        title: videoObj.name,
+        thumbnail: videoObj.thumbnail,
+        stream_url: videoObj.stream_url,
+      });
       } catch (err) {
         console.error("❌ Error:", err);
         setError(err.message || "Something went wrong");
@@ -121,8 +129,9 @@ export default function Converter({ token, url }) {
   // The custom player manages initializing the video stream, buffering configurations, and subtitles dynamically.
 
   return (
-    <div className="w-full max-w-6xl px-4 sm:px-2 lg:px-8 pb-10 mx-auto">
-      {/* 🔄 Loading State */}
+    <div className="w-full max-w-6xl sm:px-2 lg:px-8 pb-10 mx-auto">
+
+      <TakeUrl />
       {loading && !error && (
         <Loading />
       )}
@@ -144,11 +153,9 @@ export default function Converter({ token, url }) {
       {/* ✅ Main Content */}
       {!loading && !error && selectedVideo && (
         <>
-          <TakeUrl />
           {/* 🎥 Video Player Section */}
           <div id="video" className="w-[90vw] md:w-full max-w-full mt-10 mx-auto">
-            <div
-              className="relative rounded-2xl overflow-hidden shadow-lg border border-gray-300 dark:border-gray-700 mx-auto"
+            <div className="relative rounded-2xl overflow-hidden shadow-lg border border-gray-300 dark:border-gray-700 mx-auto"
               style={{
                 maxWidth: selectedVideo.width && selectedVideo.height && selectedVideo.width < selectedVideo.height ? "360px" : "100%",
                 aspectRatio: selectedVideo.width && selectedVideo.height ? `${selectedVideo.width} / ${selectedVideo.height}` : "16/9"
@@ -164,16 +171,23 @@ export default function Converter({ token, url }) {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-4">
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 <span>Duration: {selectedVideo.duration_formatted} ({selectedVideo.duration_seconds}s)</span>
-              </div>
-
-              <button
-                onClick={() => handleDownload(selectedVideo)}
-                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold transition-all duration-200 shadow-sm w-full md:w-auto"
-              >
-                <BsDownload className="text-lg" /> Download
-              </button>
             </div>
+
+            {/* Download button in the middle */}
+            <button onClick={() => handleDownload(selectedVideo)} className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold shadow-sm">
+              <BsDownload className="text-lg" />
+              Download
+            </button>
+
+            {/* View History icon button */}
+            <button onClick={() => {
+                const el = document.getElementById('history');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }} className="flex items-center justify-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded">
+              <FaHistory className="text-lg" />
+            </button>
           </div>
+            </div>
 
           {/* 🎬 Video Details / Info Card Section */}
           <div className="w-full mt-10">

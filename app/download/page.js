@@ -1,5 +1,7 @@
 import { genToken } from "@/lib/genToken";
 import Link from "next/link";
+import { useHistory } from "@/components/history/HistoryProvider";
+import HistoryList from "@/components/history/HistoryList";
 import { FaArrowLeft } from "react-icons/fa6";
 import Converter from "@/components/url/Converter";
 
@@ -34,8 +36,9 @@ export default async function DownloadPage({ searchParams }) {
       </h1>
 
       {/* Converter container */}
-      <div className="w-full  flex items-center justify-center  p-2 md:p-8">
-        <Converter url={decodedUrl} token={token} />
+      <div className="w-full  md:flex items-center justify-center   md:p-8">
+          <Converter url={decodedUrl} token={token} />
+          <HistoryList />
       </div>
     </div>
   );

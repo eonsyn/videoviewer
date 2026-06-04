@@ -104,6 +104,8 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
+      // Smooth scroll to the player container when metadata is loaded
+      containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   };
 
@@ -186,6 +188,7 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
 
   return (
     <div 
+    id="video"
       ref={containerRef}
       onMouseMove={() => setShowControls(true)}
       onMouseLeave={() => isPlaying && setShowControls(false)}

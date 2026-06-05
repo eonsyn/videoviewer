@@ -14,22 +14,10 @@ export default async function DownloadPage({ searchParams }) {
     <div style={{ background: "#060910", minHeight: "100vh", padding: "32px 20px 60px" }}>
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
         {/* Back button */}
-        <div style={{ marginBottom: "28px" }}>
-          <Link href="/" className="back-btn" style={{
-            display: "inline-flex", alignItems: "center", gap: "7px",
-            padding: "8px 16px", borderRadius: "9px",
-            background: "#0c1018", border: "1px solid rgba(255,255,255,0.18)",
-            color: "#9aa5b4", fontSize: "13px", fontWeight: 500,
-            textDecoration: "none", transition: "all 0.2s",
-          }}
-          >
-            <ArrowLeft size={14} /> Back to home
-          </Link>
-          <style>{`.back-btn:hover { border-color: rgba(255,255,255,0.45) !important; color: #c8d6e8 !important; }`}</style>
-        </div>
+         
 
         {/* Page heading */}
-        <div style={{ textAlign: "center", marginBottom: "36px" }}>
+        <div className="hidden md:block" style={{ textAlign: "center", marginBottom: "36px" }}>
           <h1 style={{
             fontFamily: "'Geist', sans-serif",
             fontSize: "clamp(28px, 5vw, 44px)",

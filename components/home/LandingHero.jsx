@@ -1,12 +1,7 @@
-"use client";
-import { useState, useEffect } from "react";
 import { Shield, Zap, Globe, Lock } from "lucide-react";
 import TakeUrl from "@/components/home/TakeUrl";
 
 export default function LandingHero() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   const badges = [
     { icon: <Shield size={12} />, text: "No Login" },
     { icon: <Zap size={12} />, text: "Instant" },
@@ -15,10 +10,10 @@ export default function LandingHero() {
   ];
 
   return (
-    <section style={{
-      position: "relative", minHeight: "100vh",
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      padding: "80px 20px 60px", textAlign: "center", overflow: "hidden",
+    <section className="border-b-white" style={{
+      position: "relative",
+      display: "flex", flexDirection: "column", alignItems: "center",
+      padding: "40px 20px 60px", textAlign: "center", overflow: "hidden",
       background: "#060910",
     }}>
       {/* Radial glow bg */}
@@ -56,7 +51,7 @@ export default function LandingHero() {
           padding: "5px 14px", borderRadius: "100px", marginBottom: "28px",
           background: "rgba(79,141,245,0.08)", border: "1px solid rgba(79,141,245,0.18)",
           fontSize: "12px", fontWeight: 500, color: "#93c5fd", letterSpacing: "0.01em",
-          opacity: mounted ? 1 : 0, transition: "opacity 0.5s ease 0.1s",
+          animation: "fadeInUp 0.6s ease forwards 0.1s", opacity: 0
         }}>
           <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#2dd4a4", boxShadow: "0 0 6px #2dd4a4", flexShrink: 0 }} />
           Free · Fast · No Restrictions
@@ -71,9 +66,7 @@ export default function LandingHero() {
           letterSpacing: "-0.035em",
           color: "#f0f4fc",
           marginBottom: "20px",
-          opacity: mounted ? 1 : 0,
-          transform: mounted ? "translateY(0)" : "translateY(14px)",
-          transition: "all 0.6s ease 0.15s",
+          animation: "fadeInUp 0.6s ease forwards 0.15s", opacity: 0
         }}>
           Download TeraBox{" "}
           <span style={{
@@ -88,7 +81,7 @@ export default function LandingHero() {
         <p style={{
           fontSize: "clamp(15px, 2.5vw, 17px)", color: "#6b7a8d", fontWeight: 400,
           maxWidth: "500px", margin: "0 auto 32px", lineHeight: 1.7,
-          opacity: mounted ? 1 : 0, transition: "opacity 0.6s ease 0.25s",
+          animation: "fadeInUp 0.6s ease forwards 0.25s", opacity: 0
         }}>
           Paste any TeraBox link and get direct download access — no login, no speed caps.
         </p>
@@ -97,7 +90,7 @@ export default function LandingHero() {
         <div style={{
           display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "center",
           marginBottom: "44px",
-          opacity: mounted ? 1 : 0, transition: "opacity 0.6s ease 0.35s",
+          animation: "fadeInUp 0.6s ease forwards 0.35s", opacity: 0
         }}>
           {badges.map((b, i) => (
             <span key={i} style={{
@@ -113,14 +106,14 @@ export default function LandingHero() {
         </div>
 
         {/* URL input */}
-        <div style={{ opacity: mounted ? 1 : 0, transition: "opacity 0.6s ease 0.45s" }}>
+        <div style={{ animation: "fadeInUp 0.6s ease forwards 0.45s", opacity: 0 }}>
           <TakeUrl />
         </div>
 
         {/* Social proof */}
         <p style={{
           marginTop: "32px", fontSize: "13px", color: "#3d4f64",
-          opacity: mounted ? 1 : 0, transition: "opacity 0.6s ease 0.55s",
+          animation: "fadeInUp 0.6s ease forwards 0.55s", opacity: 0
         }}>
           Supports terabox.com · 1024terabox.com · teraboxapp.com · teraboxshare.com
         </p>
@@ -130,6 +123,16 @@ export default function LandingHero() {
         @keyframes float {
           0%,100% { transform: translateY(0) scale(1); }
           50% { transform: translateY(-18px) scale(1.02); }
+        }
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(14px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
       `}</style>
     </section>

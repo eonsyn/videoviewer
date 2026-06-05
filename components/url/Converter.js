@@ -111,7 +111,7 @@ export default function Converter({ token, url }) {
       } finally {
         setLoading(false);
       }
-    };
+    }; 
     fetchStreamData();
   }, [url, token]);
 

@@ -3,7 +3,7 @@ import React, { useRef, useState, useEffect } from "react";
 import Hls from "hls.js";
 import { 
   Play, Pause, Volume2, VolumeX, Maximize, RotateCcw, 
-  Settings, Loader, SkipForward, SkipBack 
+  Settings, Loader, SkipForward, SkipBack, PictureInPicture
 } from "lucide-react";
 
 export default function CustomPlayer({ src, poster, subtitleUrl }) {
@@ -19,6 +19,33 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
   const [showControls, setShowControls] = useState(true);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
+  const [isPipEnabled, setIsPipEnabled] = useState(false);
+
+  useEffect(() => {
+    if (typeof document !== "undefined" && document.pictureInPictureEnabled) {
+      setIsPipEnabled(true);
+    }
+  }, []);
+
+  const handlePiP = async () => {
+    if (!videoRef.current) return;
+    
+    // Prevent PiP if video hasn't loaded metadata or has no video track
+    if (videoRef.current.readyState === 0 || videoRef.current.videoWidth === 0) {
+      console.warn("Cannot enter PiP: Video track not ready.");
+      return;
+    }
+
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (document.pictureInPictureEnabled) {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch (error) {
+      console.error("PiP failed", error);
+    }
+  };
 
   useEffect(() => {
     setIsPlaying(false);
@@ -181,8 +208,12 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
 
   const formatTime = (timeInSecs) => {
     if (isNaN(timeInSecs)) return "00:00";
-    const mins = Math.floor(timeInSecs / 60);
+    const hrs = Math.floor(timeInSecs / 3600);
+    const mins = Math.floor((timeInSecs % 3600) / 60);
     const secs = Math.floor(timeInSecs % 60);
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    }
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
@@ -336,10 +367,22 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
               )}
             </div>
 
+            {/* PiP */}
+            {isPipEnabled && (
+              <button 
+                onClick={handlePiP} 
+                className="text-white hover:text-red-500 transition-colors p-1"
+                title="Picture in Picture"
+              >
+                <PictureInPicture className="w-5 h-5" />
+              </button>
+            )}
+
             {/* Fullscreen */}
             <button 
               onClick={handleFullscreen} 
               className="text-white hover:text-red-500 transition-colors p-1"
+              title="Fullscreen"
             >
               <Maximize className="w-5 h-5" />
             </button>

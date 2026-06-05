@@ -40,7 +40,7 @@ export default function Banner468x60() {
       <div
         ref={adRef}
         style={{
-          width: "468px",
+          width: "100%",
           height: "60px",
         }}
       />

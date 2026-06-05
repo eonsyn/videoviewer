@@ -39,11 +39,16 @@ export default function TakeUrl() {
       {/* Card with permanent animated border */}
       <div style={{ position: "relative", borderRadius: "20px", isolation: "isolate", overflow: "hidden", padding: "1px" }}>
 
-        {/* Single Smooth Spinning Conic Border */}
+        {/* Single Smooth Spinning Conic Border - FIXED for aspect ratio clipping */}
         <div style={{
           position: "absolute",
-          inset: "-50%", /* Large enough to prevent clipping during smooth rotation */
-          background: "conic-gradient(from 0deg, transparent 40deg, #4f8df5 120deg, #2dd4a4 180deg, transparent 260deg)",
+          top: "50%",
+          left: "50%",
+          width: "250%", /* Large enough to cover the diagonal of the container */
+          aspectRatio: "1", /* Forces it to remain a perfect square */
+          background:
+            "conic-gradient(from 0deg, transparent 40deg, #4f8df5 120deg, #2dd4a4 170deg, transparent 230deg)",
+
           animation: "border-spin 6s linear infinite",
           zIndex: 0,
         }} />
@@ -132,7 +137,12 @@ export default function TakeUrl() {
       </div>
 
       <style>{`
-        @keyframes border-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        /* Updated keyframes to keep the massive square perfectly centered */
+        @keyframes border-spin { 
+          from { transform: translate(-50%, -50%) rotate(0deg); } 
+          to { transform: translate(-50%, -50%) rotate(360deg); } 
+        }
+        
         .spin { animation: spin 0.9s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         input::placeholder { color: #2d3a4a !important; }

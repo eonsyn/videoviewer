@@ -62,21 +62,26 @@ export default function Converter({ token, url }) {
           throw new Error("No video data found in response");
         }
 
-        // Convert video size (bytes/string) to formatted size (MB/KB)
+        // Convert video size (bytes/string) to formatted size (MB/KB/GB)
         const formatSize = (sizeVal) => {
           const bytes = Number(sizeVal);
           if (isNaN(bytes) || bytes <= 0) return "Unknown Size";
-          if (bytes >= 1e9) return (bytes / 1e9).toFixed(2) + " GB";
-          if (bytes >= 1e6) return (bytes / 1e6).toFixed(2) + " MB";
-          return (bytes / 1e3).toFixed(2) + " KB";
+          if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + " GB";
+          if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + " MB";
+          if (bytes >= 1024) return (bytes / 1024).toFixed(2) + " KB";
+          return bytes + " B";
         };
 
-        // Format duration (in seconds) to readable string (e.g. 1:23)
+        // Format duration (in seconds) to readable string (e.g. 1:23 or 1:02:23)
         const formatDuration = (seconds) => {
           const sec = Number(seconds);
           if (isNaN(sec) || sec <= 0) return "Unknown Duration";
-          const mins = Math.floor(sec / 60);
+          const hrs = Math.floor(sec / 3600);
+          const mins = Math.floor((sec % 3600) / 60);
           const remainingSecs = sec % 60;
+          if (hrs > 0) {
+            return `${hrs}:${mins.toString().padStart(2, "0")}:${remainingSecs.toString().padStart(2, "0")}`;
+          }
           return `${mins}:${remainingSecs.toString().padStart(2, "0")}`;
         };
 

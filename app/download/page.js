@@ -34,7 +34,7 @@ export default async function DownloadPage({ searchParams }) {
         {/* Converter + history */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0" }}>
           <Converter url={decodedUrl} token={token} />
-          <HistoryList />
+         
         </div>
       </div>
     </div>

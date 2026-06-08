@@ -3,6 +3,19 @@ import React from "react";
 import { useHistory } from "@/components/history/HistoryProvider";
 import { Play, Trash2, Clock, Trash } from "lucide-react";
 
+// Helper function to format seconds into H:MM:SS or M:SS
+const formatDuration = (totalSeconds) => {
+  if (!totalSeconds) return "0:00";
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = Math.floor(totalSeconds % 60);
+
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+  return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
 export default function HistoryList() {
   const { history, deleteEntry, clearHistory } = useHistory();
 
@@ -13,88 +26,84 @@ export default function HistoryList() {
   if (!history || history.length === 0) return null;
 
   return (
-    <div style={{
-      width: "100%", maxWidth: "640px", margin: "0 auto",
-      marginTop: "32px",
-      background: "#0c1018", border: "1px solid rgba(255,255,255,0.06)",
-      borderRadius: "16px", overflow: "hidden",
-    }}>
+    <div className="flex flex-col h-full w-full bg-[#0f0f0f] border border-white/10 rounded-2xl overflow-hidden font-sans">
       {/* Header */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "16px 20px",
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <Clock size={15} color="#6b7a8d" />
-          <span style={{ fontFamily: "'Geist', sans-serif", fontSize: "14px", fontWeight: 600, color: "#f0f4fc" }}>Watch History</span>
-          <span style={{
-            padding: "1px 8px", borderRadius: "100px",
-            background: "rgba(79,141,245,0.1)", border: "1px solid rgba(79,141,245,0.18)",
-            fontSize: "11px", fontWeight: 600, color: "#93c5fd",
-          }}>{history.length}</span>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+        <div className="flex items-center gap-2">
+          <Clock size={16} className="text-zinc-400" />
+          <span className="text-sm font-semibold text-zinc-100">Up Next / History</span>
         </div>
-        <button onClick={handleClearAll} style={{
-          display: "flex", alignItems: "center", gap: "5px",
-          padding: "5px 10px", borderRadius: "7px",
-          background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.15)",
-          color: "#f87171", fontSize: "12px", fontWeight: 500, cursor: "pointer",
-          transition: "all 0.2s",
-        }}>
-          <Trash size={12} /> Clear all
+        <button
+          onClick={handleClearAll}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors"
+        >
+          <Trash size={12} /> Clear
         </button>
       </div>
 
       {/* Items */}
-      <div style={{ maxHeight: "360px", overflowY: "auto" }}>
+      <div className="flex-1 overflow-y-auto p-3">
         {history.map((entry) => (
-          <div key={entry.url} style={{
-            display: "flex", alignItems: "center", gap: "12px",
-            padding: "12px 20px",
-            borderBottom: "1px solid rgba(255,255,255,0.04)",
-            transition: "background 0.15s",
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
-          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          <div
+            key={entry.url}
+            className="group flex gap-3 mb-2 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer relative"
+            onClick={() => window.open(`/download?url=${encodeURIComponent(entry.url)}`, '_blank')}
           >
-            {/* Thumbnail */}
-            <div style={{
-              width: "52px", height: "36px", flexShrink: 0, borderRadius: "6px",
-              background: "#161e2e", overflow: "hidden",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              {entry.thumbnail
-                ? <img src={entry.thumbnail} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <Play size={14} color="#3d4f64" />
-              }
+            {/* YouTube-style Thumbnail */}
+            <div className="relative w-[160px] h-[90px] shrink-0 rounded-lg bg-zinc-800 overflow-hidden flex items-center justify-center">
+              {entry.thumbnail ? (
+                <img src={entry.thumbnail} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <Play size={24} className="text-zinc-600" />
+              )}
+
+              {/* Duration Badge - Bottom Right */}
+              {entry.duration_seconds && (
+                <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[11px] font-medium text-white tracking-wide z-10">
+                  {formatDuration(entry.duration_seconds)}
+                </div>
+              )}
+
+              {/* Play overlay icon on hover */}
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                <Play size={28} className="fill-white text-white" />
+              </div>
             </div>
 
-            {/* Title */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{
-                fontSize: "13px", color: "#9aa5b4", fontWeight: 500, margin: 0,
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }}>{entry.title || entry.url}</p>
-            </div>
+            {/* Title & Actions */}
+            <div className="flex-1 min-w-0 flex flex-col justify-start pt-1">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-col min-w-0">
+                  <p
+                    className="text-sm font-medium text-[#f1f1f1] line-clamp-2 leading-snug"
+                    title={entry.title || entry.url}
+                  >
+                    {entry.title || entry.url}
+                  </p>
+                  {entry.description && (
+                    <p className="text-xs text-[#bbbbbb] mt-1 line-clamp-1" title={entry.description}>
+                      {entry.description}
+                    </p>
+                  )}
+                </div>
+                {/* Delete Button - Appears on Hover */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteEntry(entry.url);
+                  }}
+                  className="p-1.5 rounded-full text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+                  title="Remove from history"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
 
-            {/* Actions */}
-            <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
-              <button onClick={() => window.location.href = `/download?url=${encodeURIComponent(entry.url)}`} style={{
-                padding: "6px 10px", borderRadius: "7px", cursor: "pointer",
-                background: "rgba(45,212,164,0.08)", border: "1px solid rgba(45,212,164,0.18)",
-                color: "#2dd4a4", display: "flex", alignItems: "center", gap: "4px",
-                fontSize: "12px", fontWeight: 500, transition: "all 0.2s",
-              }}>
-                <Play size={11} /> Play
-              </button>
-              <button onClick={() => deleteEntry(entry.url)} style={{
-                padding: "6px 8px", borderRadius: "7px", cursor: "pointer",
-                background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.12)",
-                color: "#f87171", display: "flex", alignItems: "center",
-                transition: "all 0.2s",
-              }}>
-                <Trash2 size={12} />
-              </button>
+              {entry.watchedAt && (
+                <p className="text-xs text-[#aaaaaa] mt-1.5 font-medium">
+                  {new Date(entry.watchedAt).toLocaleDateString()} • {new Date(entry.watchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              )}
             </div>
           </div>
         ))}

@@ -6,15 +6,19 @@ import { BsDownload } from "react-icons/bs";
 import Link from "next/link";
 import Loading from "./Loading.js";
 import { useHistory } from "@/components/history/HistoryProvider";
+import HistoryList from "@/components/history/HistoryList";
 import CustomPlayer from "./CustomPlayer";
 import TakeUrl from "../home/TakeUrl.js";
 import Button from "@/components/ui/Button";
+import VideoDetails from "./VideoDetails.js"
 export default function Converter({ token, url }) {
-  const { addEntry } = useHistory();
+  const { addEntry, history } = useHistory();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [videoList, setVideoList] = useState([]);
   const [selectedVideo, setSelectedVideo] = useState(null);
+  const [conversionStatus, setConversionStatus] = useState(null);
+  const [autoplay, setAutoplay] = useState(false);
   // Track chosen resolution for fast streams (e.g., 360p, 480p)
   const [selectedResolution, setSelectedResolution] = useState(() => {
     // Default to first available resolution key
@@ -22,8 +26,8 @@ export default function Converter({ token, url }) {
       return Object.keys(selectedVideo.fast_stream_url)[0];
     }
     return selectedVideo?.resolutions?.[0] || '';
-  }); // ✅ only one video player
-
+  }); 
+  
   useEffect(() => {
     if (!url || !token) return;
 
@@ -31,9 +35,9 @@ export default function Converter({ token, url }) {
       try {
         setLoading(true);
         setError(null);
-
+        // https://secure-api-2ae3.onrender.com
         const res = await fetch(
-          "https://secure-api-2ae3.onrender.com/api/secure",
+          "http://localhost:5000/api/secure",
           {
             method: "POST",
             headers: {
@@ -85,17 +89,70 @@ export default function Converter({ token, url }) {
           return `${mins}:${remainingSecs.toString().padStart(2, "0")}`;
         };
 
+        let finalStreamUrl = videoData.stream;
+
+        // --- NEW: HLS Conversion & Polling Logic ---
+        if (finalStreamUrl && finalStreamUrl.includes("/playlist/") && finalStreamUrl.includes(".m3u8")) {
+          try {
+            const u = new URL(finalStreamUrl);
+            const match = u.pathname.match(/\/playlist\/([a-f0-9]{32})\.m3u8/);
+            if (match) {
+              const streamId = match[1];
+              const playlistToken = u.searchParams.get("token");
+              const base = `${u.protocol}//${u.host}`;
+
+              if (playlistToken && base) {
+                setConversionStatus("Starting conversion...");
+                const convertRes = await fetch(`${base}/convert?token=${encodeURIComponent(playlistToken)}`, { method: "POST" });
+                if (!convertRes.ok) throw new Error(`/convert returned HTTP ${convertRes.status}`);
+                const convertData = await convertRes.json();
+
+                if (convertData.status !== "already_done") {
+                  let ready = false;
+                  let dots = 0;
+                  while (!ready) {
+                    await new Promise(r => setTimeout(r, 3000));
+                    const statusRes = await fetch(`${base}/status/${streamId}`);
+                    const statusData = await statusRes.json();
+
+                    if (statusData.error) throw new Error(statusData.error);
+
+                    if (statusData.ready) {
+                      ready = true;
+                    } else {
+                      dots = (dots + 1) % 4;
+                      const segs = statusData.segments > 0 ? ` · ${statusData.segments} segments ready` : "";
+                      setConversionStatus(`Converting${".".repeat(dots + 1)}${segs}`);
+                    }
+                  }
+                }
+                setConversionStatus(null);
+              }
+            }
+          } catch (hlsErr) {
+            console.error("HLS conversion polling error:", hlsErr);
+            setConversionStatus(null);
+            // Fallback to fastStreamUrl if available
+            if (videoData.fastStreamUrl) {
+              finalStreamUrl = videoData.fastStreamUrl;
+            }
+          }
+        }
+        // -------------------------------------------
+
         // Map API response to UI video object
         const videoObj = {
           name: videoData.filename || "video.mp4",
           filename: videoData.filename || "video.mp4",
+          description: videoData.description || "",
           thumbnail: videoData.thumb || "",
           size_formatted: formatSize(videoData.size),
           duration_seconds: videoData.duration,
           duration_formatted: formatDuration(videoData.duration),
           quality: `${videoData.width}x${videoData.height}`,
-          download_link: videoData.stream,
-          stream_url: videoData.stream,
+          download_link: finalStreamUrl,
+          stream_url: finalStreamUrl,
+          fast_stream_url: videoData.fastStreamUrl || "",
           fs_id: videoData.fs_id || videoData.surl,
           ...videoData,
         };
@@ -103,12 +160,15 @@ export default function Converter({ token, url }) {
         setVideoList([videoObj]);
         setSelectedVideo(videoObj);
         // Add to history
-        addEntry({
-          url,
-          title: videoObj.name,
-          thumbnail: videoObj.thumbnail,
-          stream_url: videoObj.stream_url,
-        });
+          addEntry({
+            url,
+            title: videoObj.name,
+            description: videoObj.name,
+            filename: videoObj.filename,
+            thumbnail: videoObj.thumbnail,
+            stream_url: videoObj.stream_url,
+            duration_seconds: videoObj.duration_seconds,
+          });
 
       } catch (err) {
         console.error("❌ Error:", err);
@@ -116,7 +176,7 @@ export default function Converter({ token, url }) {
       } finally {
         setLoading(false);
       }
-    }; 
+    };
     fetchStreamData();
   }, [url, token]);
 
@@ -141,12 +201,37 @@ export default function Converter({ token, url }) {
 
   // The custom player manages initializing the video stream, buffering configurations, and subtitles dynamically.
 
+  const handleVideoEnded = () => {
+    if (autoplay && history && history.length > 0) {
+      // Try to find the next video in history (older). If current isn't in history or is last, loop to first.
+      const currentIndex = history.findIndex(h => h.url === url);
+      let nextItem;
+      if (currentIndex !== -1 && currentIndex + 1 < history.length) {
+        nextItem = history[currentIndex + 1];
+      } else {
+        nextItem = history[0];
+      }
+      if (nextItem && nextItem.url !== url) {
+        window.location.href = `/download?url=${encodeURIComponent(nextItem.url)}`;
+      }
+    }
+  };
+
   return (
-    <div className="w-full max-w-6xl sm:px-2 lg:px-8 pb-10 mx-auto">
+    <div className="w-full max-w-[1600px] sm:px-2 lg:px-8 pb-10 mx-auto">
 
       <TakeUrl />
       {loading && !error && (
-        <Loading />
+        <div className="flex flex-col items-center justify-center space-y-4 my-10">
+          {conversionStatus ? (
+            <div className="flex flex-col items-center gap-3 bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
+              <div className="w-8 h-8 rounded-full border-4 border-yellow-500 border-t-transparent animate-spin"></div>
+              <p className="text-yellow-400 font-medium font-mono animate-pulse">{conversionStatus}</p>
+            </div>
+          ) : (
+            <Loading />
+          )}
+        </div>
       )}
       {/* ❌ Error Popup Modal */}
       {error && (
@@ -207,75 +292,35 @@ export default function Converter({ token, url }) {
 
       {/* ✅ Main Content */}
       {!loading && !error && selectedVideo && (
-        <>
-          {/* 🎥 Video Player Section */}
-          <div id="video" className="w-[90vw] md:w-full max-w-full mt-10 mx-auto">
-            <div className="relative rounded-2xl overflow-hidden shadow-lg border border-gray-300 dark:border-gray-700 mx-auto"
+        <div className="flex flex-col lg:flex-row gap-6 mt-6">
+
+          {/* 🎥 Left Column: Video Player & Details */}
+          <div className="flex-1 min-w-0">
+            {/* Player */}
+            <div id="video" className="w-full relative rounded-2xl overflow-hidden shadow-lg border border-gray-300 dark:border-gray-700 bg-black"
               style={{
-                maxWidth: selectedVideo.width && selectedVideo.height && selectedVideo.width < selectedVideo.height ? "360px" : "100%",
                 aspectRatio: selectedVideo.width && selectedVideo.height ? `${selectedVideo.width} / ${selectedVideo.height}` : "16/9"
               }}
             >
               <CustomPlayer
                 src={selectedVideo.stream_url}
+                fallbackSrc={selectedVideo.fast_stream_url}
                 poster={selectedVideo.thumbnail}
                 subtitleUrl={selectedVideo.subtitle_url}
+                onEnded={handleVideoEnded}
               />
             </div>
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-4">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                <span>Duration: {selectedVideo.duration_formatted} ({selectedVideo.duration_seconds}s)</span>
-              </div>
-
-              {/* Download button in the middle */}
-              <Button onClick={() => handleDownload(selectedVideo)} style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', boxShadow: '0 4px 15px rgba(22,163,74,0.35)' }}>
-                <BsDownload /> Download
-              </Button>
-
-              {/* View History icon button */}
-              <Button onClick={() => {
-                const el = document.getElementById('history');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }} variant="outline" style={{ padding: '10px 14px' }}>
-                <FaHistory />
-              </Button>
-            </div>
+            {/* Video Details (YouTube Title/Desc style) */}
+            <VideoDetails selectedVideo={selectedVideo} autoplay={autoplay} setAutoplay={setAutoplay} handleDownload={handleDownload}/>
           </div>
 
-          {/* 🎬 Video Details / Info Card Section */}
-          <div className="w-full mt-10">
-            <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-6 text-center">
-              Video Details
-            </h3>
-
-            <div className="max-w-xl mx-auto rounded-2xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-md">
-              {/* Thumbnail */}
-              {selectedVideo.thumbnail && (
-                <div className="w-full aspect-video overflow-hidden bg-gray-200 dark:bg-gray-900 rounded-xl mb-4">
-                  <img
-                    src={selectedVideo.thumbnail}
-                    alt={selectedVideo.name}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              )}
-
-              {/* Details */}
-              <div className="flex flex-col gap-2 text-left">
-                <h4 className="font-bold text-lg text-gray-900 dark:text-gray-100 break-all">
-                  {selectedVideo.name}
-                </h4>
-                <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-400 mt-2 border-t pt-2">
-                  <div><strong>Resolution:</strong> {selectedVideo.quality}</div>
-                  <div><strong>Size:</strong> {selectedVideo.size_formatted}</div>
-                  <div><strong>Duration:</strong> {selectedVideo.duration_formatted}</div>
-                  <div><strong>Source:</strong> TeraBox Link</div>
-                </div>
-              </div>
-            </div>
+          {/* 🎬 Right Column: Sidebar (History / Up Next) */}
+          <div className="w-full lg:w-[400px] xl:w-[450px] flex-shrink-0" id="history">
+            <HistoryList />
           </div>
-        </>
+
+        </div>
       )}
     </div>
 

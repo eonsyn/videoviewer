@@ -5,7 +5,9 @@ import { createContext, useContext, useEffect, useState } from 'react';
  * @typedef {Object} HistoryEntry
  * @property {string} url
  * @property {string} [title]
- * @property {string} [thumbnail]
+ * @property {string} [description]
+ * @property {string} [filename]
+* @property {number} [duration_seconds] // video length in seconds
  * @property {number} watchedAt
  */
 
@@ -47,7 +49,11 @@ export const HistoryProvider = ({ children }) => {
   const addEntry = (entry) => {
     const newEntry = {
       url: entry.url,
+      title: entry.title,
+      description: entry.description,
+      filename: entry.filename,
       thumbnail: entry.thumbnail,
+      duration_seconds: entry.duration_seconds,
       watchedAt: Date.now(),
     };
     setHistory((prev) => {

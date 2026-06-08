@@ -1,15 +1,16 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
 import Hls from "hls.js";
-import { 
-  Play, Pause, Volume2, VolumeX, Maximize, RotateCcw, 
+import {
+  Play, Pause, Volume2, VolumeX, Maximize, RotateCcw,
   Settings, Loader, SkipForward, SkipBack, PictureInPicture
 } from "lucide-react";
 
-export default function CustomPlayer({ src, poster, subtitleUrl }) {
+export default function CustomPlayer({ src, fallbackSrc, poster, subtitleUrl, onEnded }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
 
+  const [currentSrc, setCurrentSrc] = useState(src);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -21,6 +22,14 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
   const [showSettings, setShowSettings] = useState(false);
   const [isPipEnabled, setIsPipEnabled] = useState(false);
 
+  // YouTube Gestures State & Refs
+  const [is2xSpeed, setIs2xSpeed] = useState(false);
+  const [skipIndicator, setSkipIndicator] = useState(null); // 'left' | 'right' | null
+  const longPressTimer = useRef(null);
+  const lastTap = useRef(0);
+  const prevRate = useRef(1);
+  const wasLongPressing = useRef(false);
+
   useEffect(() => {
     if (typeof document !== "undefined" && document.pictureInPictureEnabled) {
       setIsPipEnabled(true);
@@ -29,8 +38,7 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
 
   const handlePiP = async () => {
     if (!videoRef.current) return;
-    
-    // Prevent PiP if video hasn't loaded metadata or has no video track
+
     if (videoRef.current.readyState === 0 || videoRef.current.videoWidth === 0) {
       console.warn("Cannot enter PiP: Video track not ready.");
       return;
@@ -51,44 +59,60 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
     setIsPlaying(false);
     setIsLoading(true);
     setCurrentTime(0);
+    setCurrentSrc(src);
   }, [src]);
 
-  // Handle HLS and dynamic buffering configuration with low‑latency support
   useEffect(() => {
-    if (!videoRef.current || !src) return;
+    if (!videoRef.current || !currentSrc) return;
     const video = videoRef.current;
 
-    // Ensure video element preloads data
     video.preload = "auto";
-
-    const isHls = src.includes(".m3u8") || src.includes("m3u8");
+    const isHls = currentSrc.includes(".m3u8") || currentSrc.includes("m3u8");
     let hlsInstance = null;
 
     if (isHls && Hls.isSupported()) {
       hlsInstance = new Hls({
-        maxBufferLength: 120, // up to 2 minutes buffer
+        maxBufferLength: 120,
         maxMaxBufferLength: 240,
         maxBufferSize: 200 * 1024 * 1024,
         lowLatencyMode: true,
         backBufferLength: 30,
         progressive: true,
-        // aggressive fetch to keep buffer filled
         fragLoadingTimeOut: 4000,
         fragLoadingMaxRetry: 5,
         startLevel: -1,
       });
-      hlsInstance.loadSource(src);
+
+      hlsInstance.on(Hls.Events.ERROR, function (event, data) {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+            case Hls.ErrorTypes.MEDIA_ERROR:
+            case Hls.ErrorTypes.MUX_ERROR:
+              console.warn("HLS fatal error encountered. Attempting recovery or fallback...");
+              if (fallbackSrc && currentSrc !== fallbackSrc) {
+                console.warn("Switching to fallback source:", fallbackSrc);
+                hlsInstance.destroy();
+                setCurrentSrc(fallbackSrc);
+              }
+              break;
+            default:
+              if (fallbackSrc && currentSrc !== fallbackSrc) {
+                hlsInstance.destroy();
+                setCurrentSrc(fallbackSrc);
+              }
+              break;
+          }
+        }
+      });
+      hlsInstance.loadSource(currentSrc);
       hlsInstance.attachMedia(video);
-    } else {
-      video.src = src;
     }
 
-    // Recover from stalled network conditions
-    const handleStalled = () => {
-      if (hlsInstance) hlsInstance.startLoad();
-    };
+    const handleStalled = () => setIsLoading(true);
     const handleWaiting = () => setIsLoading(true);
     const handlePlaying = () => setIsLoading(false);
+
     video.addEventListener("stalled", handleStalled);
     video.addEventListener("waiting", handleWaiting);
     video.addEventListener("playing", handlePlaying);
@@ -98,10 +122,13 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
       video.removeEventListener("stalled", handleStalled);
       video.removeEventListener("waiting", handleWaiting);
       video.removeEventListener("playing", handlePlaying);
+      if (video._fallbackErrorHandler) {
+        video.removeEventListener("error", video._fallbackErrorHandler);
+        delete video._fallbackErrorHandler;
+      }
     };
-  }, [src]);
+  }, [currentSrc, fallbackSrc]);
 
-  // Hide controls after 3 seconds of inactivity when playing
   useEffect(() => {
     if (!isPlaying || !showControls) return;
     const timeout = setTimeout(() => {
@@ -110,13 +137,33 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
     return () => clearTimeout(timeout);
   }, [showControls, isPlaying]);
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        if (screen.orientation && screen.orientation.unlock) {
+          try {
+            screen.orientation.unlock();
+          } catch (e) {
+            console.warn("Orientation unlock failed:", e);
+          }
+        }
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
   const togglePlay = () => {
     if (!videoRef.current) return;
     if (isPlaying) {
       videoRef.current.pause();
       setIsPlaying(false);
     } else {
-      videoRef.current.play().catch(() => {});
+      videoRef.current.play().catch(() => { });
       setIsPlaying(true);
     }
     setShowControls(true);
@@ -131,18 +178,12 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
-      // Smooth scroll to the player container when metadata is loaded
       containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   };
 
-  const handleCanPlay = () => {
-    setIsLoading(false);
-  };
-
-  const handleLoadStart = () => {
-    setIsLoading(true);
-  };
+  const handleCanPlay = () => setIsLoading(false);
+  const handleLoadStart = () => setIsLoading(true);
 
   const handleSeek = (e) => {
     if (videoRef.current) {
@@ -175,20 +216,32 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
     }
   };
 
-  const handleFullscreen = () => {
+  const handleFullscreen = async () => {
     if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      if (containerRef.current.requestFullscreen) {
-        containerRef.current.requestFullscreen();
-      } else if (containerRef.current.webkitRequestFullscreen) { /* Safari */
-        containerRef.current.webkitRequestFullscreen();
-      } else if (containerRef.current.msRequestFullscreen) { /* IE11 */
-        containerRef.current.msRequestFullscreen();
+    try {
+      if (!document.fullscreenElement) {
+        if (containerRef.current.requestFullscreen) {
+          await containerRef.current.requestFullscreen();
+        } else if (containerRef.current.webkitRequestFullscreen) {
+          await containerRef.current.webkitRequestFullscreen();
+        } else if (containerRef.current.msRequestFullscreen) {
+          await containerRef.current.msRequestFullscreen();
+        }
+
+        if (screen.orientation && screen.orientation.lock) {
+          try {
+            await screen.orientation.lock('landscape');
+          } catch (e) {
+            console.warn("Orientation lock failed:", e);
+          }
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
       }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
+    } catch (err) {
+      console.error("Fullscreen error:", err);
     }
   };
 
@@ -217,25 +270,91 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // YouTube Gesture Handlers
+  const handleGestureStart = (e) => {
+    if (e.button && e.button !== 0) return; // Only trigger for left-click
+    wasLongPressing.current = false;
+
+    if (isPlaying) {
+      longPressTimer.current = setTimeout(() => {
+        if (videoRef.current) {
+          prevRate.current = videoRef.current.playbackRate;
+          videoRef.current.playbackRate = 2.0;
+          setIs2xSpeed(true);
+          wasLongPressing.current = true;
+        }
+      }, 450); // Hold threshold
+    }
+  };
+
+  const handleGestureEnd = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    if (is2xSpeed) {
+      if (videoRef.current) {
+        videoRef.current.playbackRate = prevRate.current;
+      }
+      setIs2xSpeed(false);
+    }
+  };
+
+  const handleSurfaceClick = (e) => {
+    if (wasLongPressing.current) {
+      wasLongPressing.current = false;
+      return; // Absorb click from long press release
+    }
+
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+
+    // Get correct click/tap X coordinate across desktop & mobile platforms
+    const clientX = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
+
+    if (now - lastTap.current < DOUBLE_TAP_DELAY) {
+      // Double tap confirmed
+      if (containerRef.current && clientX) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = clientX - rect.left;
+
+        if (x < rect.width / 2) {
+          skip(-10);
+          setSkipIndicator("left");
+        } else {
+          skip(10);
+          setSkipIndicator("right");
+        }
+        setTimeout(() => setSkipIndicator(null), 650);
+      }
+      // Revert the play/pause state shift caused by the first click
+      togglePlay();
+      lastTap.current = 0;
+    } else {
+      lastTap.current = now;
+      togglePlay();
+    }
+  };
+
   return (
-    <div 
-    id="video"
+    <div
+      id="video"
       ref={containerRef}
       onMouseMove={() => setShowControls(true)}
-      onMouseLeave={() => isPlaying && setShowControls(false)}
+      onMouseLeave={() => {
+        if (isPlaying) setShowControls(false);
+        handleGestureEnd();
+      }}
       className="group relative w-full h-full bg-black rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center select-none"
     >
       <video
         ref={videoRef}
         poster={poster}
-        onClick={togglePlay}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onLoadStart={handleLoadStart}
         onCanPlay={handleCanPlay}
         onWaiting={() => setIsLoading(true)}
         onPlaying={() => setIsLoading(false)}
-        className="w-full h-full object-contain cursor-pointer"
+        onEnded={onEnded}
+        className="w-full h-full object-contain"
         playsInline
         preload="auto"
       >
@@ -250,16 +369,52 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
         )}
       </video>
 
+      {/* Transparent Gesture Layer Intercepting Inputs */}
+      <div
+        className="absolute inset-0 z-0 cursor-pointer"
+        onMouseDown={handleGestureStart}
+        onMouseUp={handleGestureEnd}
+        onTouchStart={handleGestureStart}
+        onTouchEnd={handleGestureEnd}
+        onClick={handleSurfaceClick}
+      />
+
+      {/* YouTube Long Press Speed indicator */}
+      {is2xSpeed && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 z-30 pointer-events-none animate-pulse border border-white/10">
+          <span>2x Speed</span>
+          <SkipForward className="w-3.5 h-3.5 fill-white" />
+        </div>
+      )}
+
+      {/* YouTube Double Tap Skip Indicators */}
+      {skipIndicator === "left" && (
+        <div className="absolute left-0 top-0 bottom-0 w-1/3 bg-gradient-to-r from-white/10 to-transparent flex flex-col items-center justify-center text-white font-medium pointer-events-none z-20 rounded-l-2xl transition-opacity duration-300">
+          <div className="bg-black/40 p-3 rounded-full flex items-center justify-center">
+            <SkipBack className="w-6 h-6 fill-white animate-ping" />
+          </div>
+          <span className="text-xs bg-black/60 px-2 py-0.5 rounded-full font-bold mt-2">-10s</span>
+        </div>
+      )}
+      {skipIndicator === "right" && (
+        <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-white/10 to-transparent flex flex-col items-center justify-center text-white font-medium pointer-events-none z-20 rounded-r-2xl transition-opacity duration-300">
+          <div className="bg-black/40 p-3 rounded-full flex items-center justify-center">
+            <SkipForward className="w-6 h-6 fill-white animate-ping" />
+          </div>
+          <span className="text-xs bg-black/60 px-2 py-0.5 rounded-full font-bold mt-2">+10s</span>
+        </div>
+      )}
+
       {/* Loading Spinner */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px] pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px] pointer-events-none z-10">
           <Loader className="w-10 h-10 text-white animate-spin" />
         </div>
       )}
 
       {/* Big Play/Pause overlay button on hover */}
       {!isLoading && !isPlaying && (
-        <button 
+        <button
           onClick={togglePlay}
           className="absolute w-16 h-16 rounded-full bg-red-600/90 text-white flex items-center justify-center hover:scale-110 transition-transform shadow-lg cursor-pointer z-10"
         >
@@ -268,10 +423,9 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
       )}
 
       {/* Controls Overlay */}
-      <div 
-        className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 flex flex-col gap-3 transition-opacity duration-300 z-10 ${
-          showControls ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
+      <div
+        className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 flex flex-col gap-3 transition-opacity duration-300 z-10 ${showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
       >
         {/* Progress Bar Slider */}
         <div className="flex items-center gap-2 w-full group/slider">
@@ -297,16 +451,16 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
         {/* Action Buttons Row */}
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-3">
-            <button 
-              onClick={togglePlay} 
+            <button
+              onClick={togglePlay}
               className="text-white hover:text-red-500 transition-colors p-1"
             >
               {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current" />}
             </button>
 
             {/* Skip Back */}
-            <button 
-              onClick={() => skip(-10)} 
+            <button
+              onClick={() => skip(-10)}
               className="text-white hover:text-red-500 transition-colors p-1 hidden sm:inline"
               title="Rewind 10s"
             >
@@ -314,8 +468,8 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
             </button>
 
             {/* Skip Forward */}
-            <button 
-              onClick={() => skip(10)} 
+            <button
+              onClick={() => skip(10)}
               className="text-white hover:text-red-500 transition-colors p-1 hidden sm:inline"
               title="Fast Forward 10s"
             >
@@ -324,8 +478,8 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
 
             {/* Volume Control */}
             <div className="flex items-center gap-1.5 group/volume">
-              <button 
-                onClick={toggleMute} 
+              <button
+                onClick={toggleMute}
                 className="text-white hover:text-red-500 transition-colors p-1"
               >
                 {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
@@ -345,7 +499,7 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
           <div className="flex items-center gap-3">
             {/* Speed / Settings */}
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setShowSettings(!showSettings)}
                 className="text-white hover:text-red-500 transition-colors p-1"
               >
@@ -355,8 +509,8 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
                 <div className="absolute right-0 bottom-full mb-2 bg-black/95 border border-white/10 rounded-lg p-2 flex flex-col gap-1 text-xs text-white min-w-[100px] z-50">
                   <span className="text-white/40 font-bold px-2 py-1 select-none border-b border-white/10">Speed</span>
                   {[0.5, 1, 1.25, 1.5, 2].map((rate) => (
-                    <button 
-                      key={rate} 
+                    <button
+                      key={rate}
                       onClick={() => handleRateChange(rate)}
                       className={`px-2 py-1 text-left rounded hover:bg-white/10 transition-colors ${playbackRate === rate ? "text-red-500 font-semibold" : ""}`}
                     >
@@ -369,8 +523,8 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
 
             {/* PiP */}
             {isPipEnabled && (
-              <button 
-                onClick={handlePiP} 
+              <button
+                onClick={handlePiP}
                 className="text-white hover:text-red-500 transition-colors p-1"
                 title="Picture in Picture"
               >
@@ -379,8 +533,8 @@ export default function CustomPlayer({ src, poster, subtitleUrl }) {
             )}
 
             {/* Fullscreen */}
-            <button 
-              onClick={handleFullscreen} 
+            <button
+              onClick={handleFullscreen}
               className="text-white hover:text-red-500 transition-colors p-1"
               title="Fullscreen"
             >

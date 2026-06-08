@@ -37,7 +37,7 @@ export default function Converter({ token, url }) {
         setError(null);
         // https://secure-api-2ae3.onrender.com
         const res = await fetch(
-          "http://localhost:5000/api/secure",
+          "https://secure-api-2ae3.onrender.com/api/secure",
           {
             method: "POST",
             headers: {

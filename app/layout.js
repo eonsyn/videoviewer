@@ -3,7 +3,7 @@ import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
 import Script from "next/script";
 import { HistoryProvider } from "@/components/history/HistoryProvider";
-
+import Telegram from "@/components/ads/Telegram";
 export const metadata = {
   title: "TeraFetch | Free TeraBox Video & File Downloader",
   description: "Download TeraBox videos and files instantly with TeraFetch. 100% working, fast, secure, and free TeraBox downloader that generates direct download links in seconds.",
@@ -63,6 +63,7 @@ export default function RootLayout({ children }) {
           <main style={{ minHeight: "100vh", paddingTop: "60px" }}>
             {children}
           </main>
+          <Telegram/>
           <Footer />
         </HistoryProvider>
       </body>

@@ -1,81 +1,98 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from 'react';
-// Shape of a history entry
-/**
- * @typedef {Object} HistoryEntry
- * @property {string} url
- * @property {string} [title]
- * @property {string} [description]
- * @property {string} [filename]
-* @property {number} [duration_seconds] // video length in seconds
- * @property {number} watchedAt
- */
-
-/**
- * Context value shape
- * @typedef {Object} HistoryContextProps
- * @property {HistoryEntry[]} history
- * @property {(entry: Omit<HistoryEntry, 'watchedAt'>) => void} addEntry
- * @property {(url: string) => void} deleteEntry
- * @property {() => void} clearHistory
- */
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 const HistoryContext = createContext(undefined);
 
+const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+const STORAGE_KEY = 'videoHistory';
+
+/** Read, validate, and return history from localStorage synchronously. */
+function loadFromStorage() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+    const now = Date.now();
+    return parsed.filter((e) => now - Number(e.watchedAt) < TWO_HOURS_MS);
+  } catch {
+    return [];
+  }
+}
+
 export const HistoryProvider = ({ children }) => {
-  const [history, setHistory] = useState([]);
+  // ── Initialize directly from localStorage ────────────────────────────────
+  // Using a lazy initializer means state is populated on the very first render.
+  // This eliminates the read-effect vs persist-effect race that was wiping data
+  // on every page reload (persist effect fired with [] before read effect ran).
+  const [history, setHistory] = useState(loadFromStorage);
 
-  // Load from localStorage on mount
+  // Guard: skip the very first persist so we never overwrite good data with
+  // the initial value (only matters as a safety net — lazy init already fixes it).
+  const isFirstRender = useRef(true);
+
+  // ── Persist every change to localStorage ─────────────────────────────────
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('videoHistory');
-      if (stored) {
-        try {
-          setHistory(JSON.parse(stored));
-        } catch (e) {
-          console.error('Failed to parse video history', e);
-        }
-      }
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
     }
-  }, []);
-
-  // Persist when history changes
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('videoHistory', JSON.stringify(history));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    } catch (e) {
+      console.error('Failed to persist video history', e);
     }
   }, [history]);
 
-  const addEntry = (entry) => {
-    const newEntry = {
-      url: entry.url,
-      title: entry.title,
-      description: entry.description,
-      filename: entry.filename,
-      thumbnail: entry.thumbnail,
-      duration_seconds: entry.duration_seconds,
-      watchedAt: Date.now(),
-    };
+  // ── Purge stale entries once on mount (in case tab sat open a long time) ──
+  useEffect(() => {
+    const now = Date.now();
     setHistory((prev) => {
+      const valid = prev.filter((e) => now - Number(e.watchedAt) < TWO_HOURS_MS);
+      // Only trigger a re-render + persist if something was actually removed
+      return valid.length !== prev.length ? valid : prev;
+    });
+  }, []);
+
+  /**
+   * Add or refresh a history entry.
+   * Preserves the original watchedAt so the 2-hour cache window is anchored
+   * to when the user first opened the URL, not the most recent API response.
+   * Also preserves existing progress unless the caller passes a value > 0.
+   */
+  const addEntry = (entry) => {
+    setHistory((prev) => {
+      const existing = prev.find((e) => e.url === entry.url);
+      const newEntry = {
+        ...entry,
+        watchedAt: existing ? existing.watchedAt : Date.now(),
+        progress: entry.progress > 0 ? entry.progress : (existing?.progress || 0),
+      };
       const filtered = prev.filter((e) => e.url !== newEntry.url);
-      return [newEntry, ...filtered].slice(0, 100); // keep recent 100
+      return [newEntry, ...filtered].slice(0, 100);
     });
   };
 
-  const deleteEntry = (url) => {
-    setHistory((prev) => prev.filter((e) => e.url !== url));
+  /** Update only the playback position for a URL. */
+  const updateProgress = (url, currentTime) => {
+    setHistory((prev) =>
+      prev.map((entry) =>
+        entry.url === url ? { ...entry, progress: currentTime } : entry
+      )
+    );
   };
 
+  const deleteEntry = (url) =>
+    setHistory((prev) => prev.filter((e) => e.url !== url));
 
   const clearHistory = () => {
     setHistory([]);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('videoHistory');
-    }
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   };
 
   return (
-    <HistoryContext.Provider value={{ history, addEntry, deleteEntry, clearHistory }}>
+    <HistoryContext.Provider value={{ history, addEntry, updateProgress, deleteEntry, clearHistory }}>
       {children}
     </HistoryContext.Provider>
   );

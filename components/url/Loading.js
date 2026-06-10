@@ -3,7 +3,7 @@ import React from "react";
 export default function Loading() {
   return (
     /* Added "border border-white/40 shadow-lg" to the main container for that cool crisp edge */
-    <div className="mt-8 relative glass w-full h-[50vh]   rounded-2xl bg-gray-100 dark:bg-gray-950 border  border-white  shadow-xl  ">
+    <div className=" relative glass w-full h-[80vh]   rounded-2xl bg-gray-100 dark:bg-gray-950 border  border-white  shadow-xl  ">
       <div className="relative glass w-full h-full flex items-center justify-center overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-950  filter-goo">
 
         {/* 1. Bounding Inner Border (Swapped dashed line for a clean, sharp inner accent) */}

@@ -1,78 +1,122 @@
 "use client";
-
 import React, { useState } from "react";
 import { useHistory } from "@/components/history/HistoryProvider";
-import {
-  Play,
-  Trash2,
-  Clock,
-  Trash,
-} from "lucide-react";
+import { Play, Trash2, Clock, Trash } from "lucide-react";
 
-// Helper function to format seconds into H:MM:SS or M:SS
 const formatDuration = (totalSeconds) => {
   if (!totalSeconds) return "0:00";
-
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
   const s = Math.floor(totalSeconds % 60);
-
-  if (h > 0) {
-    return `${h}:${m.toString().padStart(2, "0")}:${s
-      .toString()
-      .padStart(2, "0")}`;
-  }
-
+  if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   return `${m}:${s.toString().padStart(2, "0")}`;
 };
 
-export default function HistoryList() {
-  const { history, deleteEntry, clearHistory } = useHistory();
+const timeAgo = (ts) => {
+  if (!ts) return "";
+  const diff = Date.now() - Number(ts);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(Number(ts)).toLocaleDateString();
+};
 
+// Fix: changed 'setAutoPlay' to 'setAutoplay' to match the onClick handler
+export default function HistoryList({ autoplay, setAutoplay }) {
+  const { history, deleteEntry, clearHistory } = useHistory();
   const [hoveredVideo, setHoveredVideo] = useState(null);
   const [loadingVideo, setLoadingVideo] = useState(null);
 
   const handleClearAll = () => {
-    if (window.confirm("Delete all history?")) {
-      clearHistory();
-    }
+    if (window.confirm("Delete all history?")) clearHistory();
   };
 
   if (!history || history.length === 0) return null;
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#0f0f0f] border border-white/10 rounded-2xl overflow-hidden font-sans">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
-        <div className="flex items-center gap-2">
-          <Clock size={16} className="text-zinc-400" />
-          <span className="text-sm font-semibold text-zinc-100">
-            Up Next / History
-          </span>
+    <div style={{
+      width: "100%",
+      background: "#0f0f0f",
+      borderRadius: "12px",
+      border: "1px solid rgba(255,255,255,0.07)",
+      overflow: "hidden",
+      fontFamily: "'Geist', sans-serif",
+      maxHeight: "100vh",
+      display: "flex",
+      flexDirection: "column",
+    }}>
+
+      {/* ── Header ── */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "14px 16px 12px",
+        borderBottom: "1px solid rgba(255,255,255,0.05)",
+        flexShrink: 0,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <button
+            onClick={() => setAutoplay(!autoplay)}
+            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 transition-colors px-3 py-1.5 rounded-full cursor-pointer border-none outline-none"
+          >
+            <span className="text-sm font-medium text-[#f1f1f1] pl-1">Autoplay</span>
+            <div className={`w-9 h-5 rounded-full relative transition-colors flex items-center px-0.5 ${autoplay ? "bg-white" : "bg-[#717171]"}`}>
+              <div className={`w-4 h-4 rounded-full transition-transform ${autoplay ? "bg-[#0f0f0f] translate-x-4" : "bg-[#0f0f0f] translate-x-0"}`} />
+            </div>
+          </button>
+
+
         </div>
 
         <button
           onClick={handleClearAll}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors"
+          title="Clear all"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "5px",
+            background: "rgba(239,68,68,0.08)",
+            border: "1px solid rgba(239,68,68,0.18)",
+            borderRadius: "8px",
+            padding: "5px 10px",
+            fontSize: "12px",
+            color: "#f87171",
+            cursor: "pointer",
+            fontFamily: "'Geist', sans-serif",
+            transition: "background 0.2s",
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.16)"}
+          onMouseLeave={e => e.currentTarget.style.background = "rgba(239,68,68,0.08)"}
         >
-          <Trash size={12} />
+          <Trash
+            size={16}
+            className="hover:text-red-500 hover:scale-110 hover:rotate-12 transition-all duration-200"
+          />
           Clear
         </button>
       </div>
 
-      {/* Items */}
-      <div className="flex-1 overflow-y-auto p-3">
-        {history.map((entry) => {
-          // Calculate the watched percentage safely
-          const progressPercent =
-            entry.duration_seconds && entry.progress
-              ? Math.min(100, Math.max(0, (entry.progress / entry.duration_seconds) * 100))
-              : 0;
+      {/* ── Scrollable list ── */}
+      <div style={{
+        flex: 1,
+        overflowY: "auto",
+        padding: "8px 4px",
+      }}>
+
+        {history.map((entry, idx) => {
+          const progressPercent = entry.duration_seconds && entry.progress
+            ? Math.min(100, Math.max(0, (entry.progress / entry.duration_seconds) * 100))
+            : 0;
 
           return (
             <div
               key={entry.url}
-              className="group flex gap-3 mb-2 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer relative"
+              onClick={() => window.open(`/download?url=${encodeURIComponent(entry.url)}`, "_blank")}
               onMouseEnter={() => {
                 setHoveredVideo(entry.url);
                 setLoadingVideo(entry.url);
@@ -81,128 +125,219 @@ export default function HistoryList() {
                 setHoveredVideo(null);
                 setLoadingVideo(null);
               }}
-              onClick={() =>
-                window.open(
-                  `/download?url=${encodeURIComponent(entry.url)}`,
-                  "_blank"
-                )
-              }
+              style={{
+                display: "flex",
+                gap: "8px",
+                padding: "8px 10px",
+                borderRadius: "8px",
+                cursor: "pointer",
+                position: "relative",
+                transition: "background 0.15s",
+                background: hoveredVideo === entry.url ? "rgba(255,255,255,0.04)" : "transparent",
+                borderLeft: "2px solid transparent",
+              }}
             >
-              {/* Thumbnail / Preview Container */}
-              <div className="relative w-[160px] h-[90px] shrink-0 rounded-lg bg-zinc-800 overflow-hidden flex items-center justify-center">
-
-                {/* Thumbnail */}
+              {/* Thumbnail */}
+              <div style={{
+                width: "168px",
+                height: "94px",
+                flexShrink: 0,
+                borderRadius: "8px",
+                background: "#1a1f2b",
+                overflow: "hidden",
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+                {/* Static thumbnail */}
                 {entry.thumbnail && (
                   <img
                     src={entry.thumbnail}
                     alt=""
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${hoveredVideo === entry.url && !loadingVideo && entry.fast_stream_url
-                        ? "opacity-0"
-                        : "opacity-100"
-                      }`}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      transition: "opacity 0.3s",
+                      opacity: hoveredVideo === entry.url && !loadingVideo && entry.fast_stream_url ? 0 : 1,
+                    }}
                   />
                 )}
 
-                {/* Hover Video Preview */}
+                {/* Hover video preview */}
                 {entry.fast_stream_url && hoveredVideo === entry.url && (
                   <video
                     src={entry.fast_stream_url}
-                    autoPlay
-                    muted
-                    playsInline
-                    preload="metadata"
+                    autoPlay muted playsInline preload="metadata"
                     onLoadedData={() => setLoadingVideo(null)}
                     onCanPlay={() => setLoadingVideo(null)}
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${loadingVideo === entry.url ? "opacity-0" : "opacity-100"
-                      }`}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      transition: "opacity 0.3s",
+                      opacity: loadingVideo === entry.url ? 0 : 1,
+                    }}
                   />
                 )}
-                 
 
-                {/* YouTube-style shimmer */}
+                {/* Shimmer while video loads */}
                 {loadingVideo === entry.url && (
-                  <div className="absolute inset-0 z-20 overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_1.2s_infinite]" />
-                  </div>
+                  <div style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.06) 50%, transparent 75%)",
+                    backgroundSize: "200% 100%",
+                    animation: "shimmer 1.2s infinite",
+                  }} />
                 )}
 
                 {!entry.thumbnail && !entry.fast_stream_url && (
-                  <Play size={24} className="text-zinc-600" />
+                  <Play size={22} color="#3d4f64" />
                 )}
 
-                {/* Duration Overlay (Shifted slightly upward to clear progress bar) */}
-                {entry.duration_seconds && (
-                  <div className="absolute bottom-2 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[11px] font-medium text-white tracking-wide z-40">
+                {/* Duration badge */}
+                {entry.duration_seconds > 0 && (
+                  <div style={{
+                    position: "absolute",
+                    bottom: "5px",
+                    right: "5px",
+                    background: "rgba(0,0,0,0.82)",
+                    color: "#fff",
+                    fontSize: "11px",
+                    fontWeight: 500,
+                    padding: "1px 5px",
+                    borderRadius: "4px",
+                    letterSpacing: "0.02em",
+                    zIndex: 10,
+                  }}>
                     {formatDuration(entry.duration_seconds)}
                   </div>
                 )}
 
-                {/* Hover Play Button Overlay */}
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-                  <Play size={28} className="fill-white text-white" />
+                {/* Hover play overlay */}
+                <div style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "rgba(0,0,0,0.35)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: hoveredVideo === entry.url ? 1 : 0,
+                  transition: "opacity 0.2s",
+                  zIndex: 5,
+                  pointerEvents: "none",
+                }}>
+                  <Play size={26} fill="white" color="white" />
                 </div>
 
-                {/* YOUTUBE STYLE PROGRESS BAR OVERLAY */}
+                {/* Progress bar */}
                 {progressPercent > 0 && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 z-40 w-full">
-                    <div
-                      className="bg-red-600 h-full transition-all duration-150"
-                      style={{ width: `${progressPercent}%` }}
-                    />
+                  <div style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: "3px",
+                    background: "rgba(255,255,255,0.15)",
+                    zIndex: 15,
+                  }}>
+                    <div style={{
+                      width: `${progressPercent}%`,
+                      height: "100%",
+                      background: "#ef4444",
+                    }} />
                   </div>
                 )}
               </div>
 
-              {/* Content */}
-              <div className="flex-1 min-w-0 flex flex-col justify-start pt-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex flex-col min-w-0">
-                    <p
-                      className="text-sm font-medium text-[#f1f1f1] line-clamp-2 leading-snug"
-                      title={entry.title || entry.url}
-                    >
-                      {entry.title || entry.url}
-                    </p>
+              {/* Text content */}
+              <div style={{
+                flex: 1,
+                minWidth: 0,
+                display: "flex",
+                flexDirection: "column",
+                paddingTop: "2px",
+              }}>
+                <p style={{
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "#f1f1f1",
+                  lineHeight: "1.4",
+                  margin: "0 0 4px",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  wordBreak: "break-word",
+                }}>
+                  {entry.title || entry.url}
+                </p>
 
-                    {entry.description && (
-                      <p
-                        className="text-xs text-[#bbbbbb] mt-1 line-clamp-1"
-                        title={entry.description}
-                      >
-                        {entry.description}
-                      </p>
-                    )}
-                  </div>
+                <p style={{
+                  fontSize: "12px",
+                  color: "#aaa",
+                  margin: "0 0 3px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}>
+                  TeraBox
+                </p>
 
-                  {/* Delete Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteEntry(entry.url);
-                    }}
-                    className="p-1.5 rounded-full text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
-                    title="Remove from history"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-
-                {/* Timestamp */}
-                {entry.watchedAt && (
-                  <p className="text-xs text-[#aaaaaa] mt-1.5 font-medium">
-                    {new Date(entry.watchedAt).toLocaleDateString()}
-                    {" • "}
-                    {new Date(entry.watchedAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                )}
+                <p style={{
+                  fontSize: "12px",
+                  color: "#717171",
+                  margin: 0,
+                }}>
+                  {timeAgo(entry.watchedAt)}
+                </p>
               </div>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteEntry(entry.url);
+                }}
+                title="Remove from history"
+                className="flex items-start justify-center p-1 text-gray-500 hover:text-red-400 transition-colors duration-150 shrink-0"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                <Trash2
+                  size={16}
+                  className="hover:text-red-500 hover:scale-110 hover:rotate-12 transition-all duration-200"
+                />
+              </button>
             </div>
           );
         })}
       </div>
+
+      <style>{`
+        @keyframes shimmer {
+          0%   { background-position: -200% 0; }
+          100% { background-position:  200% 0; }
+        }
+
+        div::-webkit-scrollbar { width: 4px; }
+        div::-webkit-scrollbar-track { background: transparent; }
+        div::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.08);
+          border-radius: 4px;
+        }
+        div::-webkit-scrollbar-thumb:hover {
+          background: rgba(255,255,255,0.14);
+        }
+      `}</style>
     </div>
   );
 }

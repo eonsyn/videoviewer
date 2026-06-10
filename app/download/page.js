@@ -1,8 +1,6 @@
 import { genToken } from "@/lib/genToken";
-import Link from "next/link";
-import HistoryList from "@/components/history/HistoryList";
-import { ArrowLeft } from "lucide-react";
 import Converter from "@/components/url/Converter";
+import TakeUrl from "@/components/home/TakeUrl.js";
 
 export default async function DownloadPage({ searchParams }) {
   const params = await searchParams;
@@ -11,32 +9,39 @@ export default async function DownloadPage({ searchParams }) {
   const token = genToken(process.env.SECRET_KEY);
 
   return (
-    <div style={{ background: "#060910", minHeight: "100vh", padding: "32px 20px 60px" }}>
-      <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-        {/* Back button */}
-         
+    <div style={{
+      background: "#060910",
+      minHeight: "100vh",
+      padding: "20px 16px 60px",
+      boxSizing: "border-box",
+    }}>
 
-        {/* Page heading */}
-        <div className="hidden md:block" style={{ textAlign: "center", marginBottom: "36px" }}>
-          <h1 style={{
-            fontFamily: "'Geist', sans-serif",
-            fontSize: "clamp(28px, 5vw, 44px)",
-            fontWeight: 800, letterSpacing: "-0.03em",
-            background: "linear-gradient(135deg, #93c5fd, #5eead4)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-            margin: "0 0 8px",
-          }}>
-            TeraBox Downloader
-          </h1>
-          <p style={{ color: "#6b7a8d", fontSize: "14px" }}>Your download is being prepared</p>
-        </div>
+      {/*
+        Outer wrapper: matches YouTube's ~1280px max content width.
+        On desktop it gives breathing room; on mobile it fills the screen.
+      */}
+      <div style={{
+        maxWidth: "1600px",
+        margin: "0 auto",
+        width: "100%",
+      }}>
+        <Converter url={decodedUrl} token={token} />
 
-        {/* Converter + history */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0" }}>
-          <Converter url={decodedUrl} token={token} />
-         
-        </div>
       </div>
+
+      <style>{`
+        /* Show top URL bar only on desktop, hide on mobile */
+        .download-topbar {
+          display: block;
+          margin-bottom: 20px;
+        }
+
+        @media (max-width: 767px) {
+          .download-topbar {
+            display: none;
+          }
+        }
+      `}</style>
     </div>
   );
 }

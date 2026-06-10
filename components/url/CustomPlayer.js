@@ -26,7 +26,19 @@ export default function CustomPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(apiDuration || 0);
   const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(true);
+
+  // ── FIX 1: Persist mute state across tabs via localStorage ──────────────
+  const [isMuted, setIsMuted] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const saved = localStorage.getItem("playerMuted");
+    return saved === null ? true : saved === "true";
+  });
+
+  const persistMute = useCallback((muted) => {
+    setIsMuted(muted);
+    try { localStorage.setItem("playerMuted", String(muted)); } catch (e) { }
+  }, []);
+
   const [isLoading, setIsLoading] = useState(true);
   const [showControls, setShowControls] = useState(true);
   const [playbackRate, setPlaybackRate] = useState(1);
@@ -48,22 +60,21 @@ export default function CustomPlayer({
   const lastSavedTime = useRef(0);
   const initialTimeApplied = useRef(false);
 
-  // ─── When the parent tells us a new final HLS src is ready ───────────────
-  // If we're mid-playback on fastSrc, seamlessly swap to src
+  // ── FIX 3: Capture time at trigger point to avoid HLS buffer overshoot ──
+  const capturedSwapTime = useRef(null);
+
   const pendingSwap = useRef(false);
 
   useEffect(() => {
     if (!src) return;
 
-    // Reset failure flag on a brand-new src
     fastSrcFailed.current = false;
 
-    // First ever mount — if fastSrc exists AND hasn't already failed, start with that
     if (fastSrc && fastSrc !== src && !fastSrcFailed.current) {
       setCurrentSrc(fastSrc);
       setUsingFastSrc(true);
       usingFastSrcRef.current = true;
-      pendingSwap.current = true; // will swap once video is playing
+      pendingSwap.current = true;
     } else {
       setCurrentSrc(src);
       setUsingFastSrc(false);
@@ -73,34 +84,39 @@ export default function CustomPlayer({
     initialTimeApplied.current = false;
     lastSavedTime.current = 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src]); // intentionally omit fastSrc – we only care when the final src lands
+  }, [src]);
 
-  // ─── When the final src becomes available, swap if we were on fastSrc ──────
+  // ── FIX 3: Capture currentTime IMMEDIATELY when src prop changes ─────────
+  // This prevents reading the HLS-buffered position (which can be 4–10s ahead)
+  // inside swapToFinalSrc which executes later asynchronously.
   useEffect(() => {
     if (!src) return;
-    if (fastSrc && src === fastSrc) return; // same URL, nothing to do
+    if (fastSrc && src === fastSrc) return;
 
-    // If fastSrc failed we never swapped — load final src directly now
     if (fastSrcFailed.current) {
       fastSrcFailed.current = false;
       setUsingFastSrc(false);
       usingFastSrcRef.current = false;
       pendingSwap.current = false;
       swapResumeTime.current = null;
+      capturedSwapTime.current = null;
       setCurrentSrc(src);
       return;
     }
 
     if (!usingFastSrc) return;
 
-    // src is now different from fastSrc → queue a seamless swap
+    // Capture time right now — before any async work — so swapToFinalSrc
+    // gets the visual playback position, not the HLS buffer head.
+    if (videoRef.current) {
+      capturedSwapTime.current = videoRef.current.currentTime;
+    }
+
     pendingSwap.current = true;
 
-    // If video is already playing we can swap right now
     if (videoRef.current && !videoRef.current.paused) {
       swapToFinalSrc();
     }
-    // Otherwise the swap fires inside handlePlaying once fastSrc starts
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
@@ -108,16 +124,18 @@ export default function CustomPlayer({
     if (!pendingSwap.current || !src) return;
     if (!videoRef.current) return;
 
-    const currentVideoTime = videoRef.current.currentTime;
     const wasPlaying = !videoRef.current.paused;
 
-    // If the video hasn't meaningfully progressed yet (currentTime < 1s),
-    // prefer the saved entry.progress (initialTime) so the user resumes
-    // from where they last left off rather than restarting from 0.
+    // ── FIX 3: Use captured time (grabbed at trigger) not live currentTime ──
+    // Live currentTime reflects the HLS decode buffer head which can be
+    // several seconds ahead of what the user actually sees.
+    const liveTime = capturedSwapTime.current ?? videoRef.current.currentTime;
+    capturedSwapTime.current = null; // consume it
+
     const savedTime =
-      currentVideoTime > 1
-        ? currentVideoTime   // mid-playback swap — keep exact position
-        : (initialTime || 0); // swap happened before user watched anything
+      liveTime > 1
+        ? liveTime
+        : (initialTime || 0);
 
     pendingSwap.current = false;
     setUsingFastSrc(false);
@@ -134,7 +152,6 @@ export default function CustomPlayer({
 
   const swapResumeTime = useRef(null);
   const swapWasPlaying = useRef(false);
-  // Tracks whether fastSrc failed so we know to load src directly instead
   const fastSrcFailed = useRef(false);
 
   // ─── Sync apiDuration ────────────────────────────────────────────────────
@@ -174,9 +191,9 @@ export default function CustomPlayer({
         if (data.fatal) {
           hlsInstance.destroy();
           if (usingFastSrcRef.current) {
-            // fastSrc HLS failed — mark it and immediately load the final src if available
             console.warn("fastSrc HLS fatal error — falling back to final src");
             fastSrcFailed.current = true;
+            capturedSwapTime.current = null;
             setUsingFastSrc(false);
             usingFastSrcRef.current = false;
             pendingSwap.current = false;
@@ -184,7 +201,6 @@ export default function CustomPlayer({
               setCurrentSrc(src);
             }
           } else if (fallbackSrc && currentSrc !== fallbackSrc) {
-            // final src failed — try the fast stream as last resort
             setCurrentSrc(fallbackSrc);
           }
         }
@@ -200,16 +216,15 @@ export default function CustomPlayer({
     const onWaiting = () => setIsLoading(true);
     const onPlaying = () => {
       setIsLoading(false);
-      // ── Seamless swap: we were buffering fastSrc, now it's playing → swap ──
       if (pendingSwap.current && src && currentSrc !== src) {
         swapToFinalSrc();
       }
     };
     const onError = () => {
       if (usingFastSrcRef.current) {
-        // fastSrc failed — fall forward to final src immediately
         console.warn("fastSrc video error — falling back to final src");
         fastSrcFailed.current = true;
+        capturedSwapTime.current = null;
         setUsingFastSrc(false);
         usingFastSrcRef.current = false;
         pendingSwap.current = false;
@@ -246,7 +261,7 @@ export default function CustomPlayer({
   useEffect(() => {
     const onFsChange = () => {
       if (!document.fullscreenElement) {
-        try { screen.orientation?.unlock?.(); } catch (e) { /* ignore */ }
+        try { screen.orientation?.unlock?.(); } catch (e) { }
       }
     };
     document.addEventListener("fullscreenchange", onFsChange);
@@ -258,7 +273,7 @@ export default function CustomPlayer({
   }, []);
 
   // ─── Player callbacks ─────────────────────────────────────────────────────
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
     if (isPlaying) {
       videoRef.current.pause();
@@ -272,7 +287,7 @@ export default function CustomPlayer({
       setIsPlaying(true);
     }
     setShowControls(true);
-  };
+  }, [isPlaying, onTimeUpdate]);
 
   const handleTimeUpdate = () => {
     if (!videoRef.current) return;
@@ -294,10 +309,6 @@ export default function CustomPlayer({
     if (!videoRef.current) return;
     if (!apiDuration) setDuration(videoRef.current.duration);
 
-    // Swap resume: seek to the saved position on the final src.
-    // swapResumeTime is either the exact playback position from the fast stream
-    // (if user had watched for >1s) or entry.progress (initialTime) if the swap
-    // happened before the user meaningfully started watching.
     if (swapResumeTime.current !== null) {
       const t = swapResumeTime.current;
       if (t > 0) {
@@ -316,7 +327,6 @@ export default function CustomPlayer({
       return;
     }
 
-    // Normal first load (no swap): resume from saved entry.progress
     if (initialTime && initialTime > 0 && !initialTimeApplied.current) {
       videoRef.current.currentTime = initialTime;
       setCurrentTime(initialTime);
@@ -344,30 +354,30 @@ export default function CustomPlayer({
     if (videoRef.current) {
       videoRef.current.volume = val;
       videoRef.current.muted = val === 0;
-      setIsMuted(val === 0);
+      persistMute(val === 0); // FIX 1: use persistMute
     }
   };
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     if (!videoRef.current) return;
     const next = !isMuted;
     videoRef.current.muted = next;
-    setIsMuted(next);
+    persistMute(next); // FIX 1: use persistMute
     videoRef.current.volume = next ? 0 : (volume || 0.5);
-  };
+  }, [isMuted, volume, persistMute]);
 
-  const handleFullscreen = async () => {
+  const handleFullscreen = useCallback(async () => {
     if (!containerRef.current) return;
     try {
       if (!document.fullscreenElement) {
         const el = containerRef.current;
         await (el.requestFullscreen?.() ?? el.webkitRequestFullscreen?.() ?? el.msRequestFullscreen?.());
-        try { await screen.orientation?.lock?.("landscape"); } catch (e) { /* ignore */ }
+        try { await screen.orientation?.lock?.("landscape"); } catch (e) { }
       } else {
         await document.exitFullscreen();
       }
     } catch (err) { console.error("Fullscreen error:", err); }
-  };
+  }, []);
 
   const handlePiP = async () => {
     if (!videoRef.current || videoRef.current.readyState === 0 || videoRef.current.videoWidth === 0) return;
@@ -377,18 +387,92 @@ export default function CustomPlayer({
     } catch (e) { console.error("PiP failed", e); }
   };
 
-  const skip = (amount) => {
+  const skip = useCallback((amount) => {
     if (!videoRef.current) return;
     const t = Math.max(0, Math.min(duration, videoRef.current.currentTime + amount));
     videoRef.current.currentTime = t;
     if (onTimeUpdate) { lastSavedTime.current = t; onTimeUpdate(t); }
-  };
+  }, [duration, onTimeUpdate]);
 
   const handleRateChange = (rate) => {
     setPlaybackRate(rate);
     if (videoRef.current) videoRef.current.playbackRate = rate;
     setShowSettings(false);
   };
+
+  // ── FIX 2: Keyboard shortcuts — Space/K, Arrows, M, F ───────────────────
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't fire if user is typing in an input/textarea/select
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      switch (e.key) {
+        case " ":
+        case "k":
+          e.preventDefault();
+          togglePlay();
+          setShowControls(true);
+          break;
+
+        case "ArrowRight":
+          e.preventDefault();
+          skip(10);
+          setSkipIndicator("right");
+          setShowControls(true);
+          setTimeout(() => setSkipIndicator(null), 650);
+          break;
+
+        case "ArrowLeft":
+          e.preventDefault();
+          skip(-10);
+          setSkipIndicator("left");
+          setShowControls(true);
+          setTimeout(() => setSkipIndicator(null), 650);
+          break;
+
+        case "ArrowUp":
+          e.preventDefault();
+          if (videoRef.current) {
+            const v = Math.min(1, (isMuted ? 0 : volume) + 0.1);
+            videoRef.current.volume = v;
+            videoRef.current.muted = false;
+            setVolume(v);
+            persistMute(false);
+            setShowControls(true);
+          }
+          break;
+
+        case "ArrowDown":
+          e.preventDefault();
+          if (videoRef.current) {
+            const v = Math.max(0, (isMuted ? 0 : volume) - 0.1);
+            videoRef.current.volume = v;
+            setVolume(v);
+            persistMute(v === 0);
+            setShowControls(true);
+          }
+          break;
+
+        case "m":
+          e.preventDefault();
+          toggleMute();
+          setShowControls(true);
+          break;
+
+        case "f":
+          e.preventDefault();
+          handleFullscreen();
+          break;
+
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [togglePlay, skip, toggleMute, handleFullscreen, isMuted, volume, persistMute]);
 
   const formatTime = (s) => {
     if (isNaN(s)) return "00:00";
@@ -491,13 +575,6 @@ export default function CustomPlayer({
           <SkipForward className="w-3.5 h-3.5 fill-white" />
         </div>
       )}
-
-      {/* Fast-stream indicator */}
-      {/* {usingFastSrc && (
-        <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-yellow-400 px-2.5 py-1 rounded-full text-[11px] font-semibold z-30 pointer-events-none border border-yellow-500/30">
-          ⚡ Fast Stream
-        </div>
-      )} */}
 
       {/* Skip indicators */}
       {skipIndicator === "left" && (

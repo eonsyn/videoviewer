@@ -3,7 +3,7 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import Hls from "hls.js";
 import {
   Play, Pause, Volume2, VolumeX, Maximize,
-  Settings, Loader, SkipForward, SkipBack, PictureInPicture
+  Settings, Loader, SkipForward, SkipBack, PictureInPicture, Zap, Layers
 } from "lucide-react";
 
 export default function CustomPlayer({
@@ -15,25 +15,24 @@ export default function CustomPlayer({
   onEnded,
   apiDuration,
   initialTime,
-  onTimeUpdate
+  onTimeUpdate,
+  hlsReady,           // true once HLS playlist is confirmed ready
 }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
 
-  // currentSrc drives what <video> / HLS is actually loading
   const [currentSrc, setCurrentSrc] = useState(() => fastSrc || src);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(apiDuration || 0);
   const [volume, setVolume] = useState(1);
 
-  // ── FIX 1: Persist mute state across tabs via localStorage ──────────────
+  // Persist mute state across tabs
   const [isMuted, setIsMuted] = useState(() => {
     if (typeof window === "undefined") return true;
     const saved = localStorage.getItem("playerMuted");
     return saved === null ? true : saved === "true";
   });
-
   const persistMute = useCallback((muted) => {
     setIsMuted(muted);
     try { localStorage.setItem("playerMuted", String(muted)); } catch (e) { }
@@ -48,9 +47,14 @@ export default function CustomPlayer({
   const [is2xSpeed, setIs2xSpeed] = useState(false);
   const [skipIndicator, setSkipIndicator] = useState(null);
 
-  // Tracks whether we're currently playing the fast stream (not the final HLS)
+  // ── Fast / HLS toggle ─────────────────────────────────────────────────────
+  // "fast" = fastSrc (direct mp4/stream), "hls" = src (HLS .m3u8)
+  // Only meaningful when hlsReady=true and fastSrc !== src
+  const hasBothSources = hlsReady && fastSrc && src && fastSrc !== src;
+  const [streamMode, setStreamMode] = useState("fast"); // "fast" | "hls"
+
+  // Tracks whether we're currently playing the fast stream
   const [usingFastSrc, setUsingFastSrc] = useState(!!(fastSrc && fastSrc !== src));
-  // Ref mirror of usingFastSrc so async HLS callbacks read current value (no stale closure)
   const usingFastSrcRef = useRef(!!(fastSrc && fastSrc !== src));
 
   const longPressTimer = useRef(null);
@@ -59,17 +63,40 @@ export default function CustomPlayer({
   const wasLongPressing = useRef(false);
   const lastSavedTime = useRef(0);
   const initialTimeApplied = useRef(false);
-
-  // ── FIX 3: Capture time at trigger point to avoid HLS buffer overshoot ──
   const capturedSwapTime = useRef(null);
-
   const pendingSwap = useRef(false);
+  const swapResumeTime = useRef(null);
+  const swapWasPlaying = useRef(false);
+  const fastSrcFailed = useRef(false);
 
+  // ── Handle manual stream mode toggle ─────────────────────────────────────
+  const handleToggleStream = useCallback(() => {
+    if (!hasBothSources || !videoRef.current) return;
+    const video = videoRef.current;
+    const savedTime = video.currentTime;
+    const wasPlaying = !video.paused;
+    const nextMode = streamMode === "fast" ? "hls" : "fast";
+    const nextSrc = nextMode === "fast" ? fastSrc : src;
+
+    setStreamMode(nextMode);
+    setIsLoading(true);
+    // Capture position so resume works correctly
+    swapResumeTime.current = savedTime;
+    swapWasPlaying.current = wasPlaying;
+    initialTimeApplied.current = false;
+    lastSavedTime.current = savedTime;
+    setUsingFastSrc(nextMode === "fast");
+    usingFastSrcRef.current = nextMode === "fast";
+    pendingSwap.current = false;
+    capturedSwapTime.current = null;
+    setCurrentSrc(nextSrc);
+  }, [hasBothSources, streamMode, fastSrc, src]);
+
+  // ── Sync src prop changes (new file selected) ────────────────────────────
   useEffect(() => {
     if (!src) return;
-
     fastSrcFailed.current = false;
-
+    setStreamMode("fast");
     if (fastSrc && fastSrc !== src && !fastSrcFailed.current) {
       setCurrentSrc(fastSrc);
       setUsingFastSrc(true);
@@ -80,19 +107,15 @@ export default function CustomPlayer({
       setUsingFastSrc(false);
       usingFastSrcRef.current = false;
     }
-
     initialTimeApplied.current = false;
     lastSavedTime.current = 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
-  // ── FIX 3: Capture currentTime IMMEDIATELY when src prop changes ─────────
-  // This prevents reading the HLS-buffered position (which can be 4–10s ahead)
-  // inside swapToFinalSrc which executes later asynchronously.
+  // ── Capture playhead when src prop changes (fix HLS buffer overshoot) ────
   useEffect(() => {
     if (!src) return;
     if (fastSrc && src === fastSrc) return;
-
     if (fastSrcFailed.current) {
       fastSrcFailed.current = false;
       setUsingFastSrc(false);
@@ -103,58 +126,32 @@ export default function CustomPlayer({
       setCurrentSrc(src);
       return;
     }
-
     if (!usingFastSrc) return;
-
-    // Capture time right now — before any async work — so swapToFinalSrc
-    // gets the visual playback position, not the HLS buffer head.
-    if (videoRef.current) {
-      capturedSwapTime.current = videoRef.current.currentTime;
-    }
-
+    if (videoRef.current) capturedSwapTime.current = videoRef.current.currentTime;
     pendingSwap.current = true;
-
-    if (videoRef.current && !videoRef.current.paused) {
-      swapToFinalSrc();
-    }
+    if (videoRef.current && !videoRef.current.paused) swapToFinalSrc();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
   const swapToFinalSrc = useCallback(() => {
     if (!pendingSwap.current || !src) return;
     if (!videoRef.current) return;
-
     const wasPlaying = !videoRef.current.paused;
-
-    // ── FIX 3: Use captured time (grabbed at trigger) not live currentTime ──
-    // Live currentTime reflects the HLS decode buffer head which can be
-    // several seconds ahead of what the user actually sees.
     const liveTime = capturedSwapTime.current ?? videoRef.current.currentTime;
-    capturedSwapTime.current = null; // consume it
-
-    const savedTime =
-      liveTime > 1
-        ? liveTime
-        : (initialTime || 0);
-
+    capturedSwapTime.current = null;
+    const savedTime = liveTime > 1 ? liveTime : (initialTime || 0);
     pendingSwap.current = false;
     setUsingFastSrc(false);
     usingFastSrcRef.current = false;
     initialTimeApplied.current = false;
     lastSavedTime.current = savedTime;
-
     swapResumeTime.current = savedTime;
     swapWasPlaying.current = wasPlaying;
-
     setCurrentSrc(src);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, initialTime]);
 
-  const swapResumeTime = useRef(null);
-  const swapWasPlaying = useRef(false);
-  const fastSrcFailed = useRef(false);
-
-  // ─── Sync apiDuration ────────────────────────────────────────────────────
+  // ── Sync apiDuration ──────────────────────────────────────────────────────
   useEffect(() => {
     if (apiDuration) setDuration(apiDuration);
   }, [apiDuration]);
@@ -165,11 +162,10 @@ export default function CustomPlayer({
     }
   }, []);
 
-  // ─── HLS / src loader ────────────────────────────────────────────────────
+  // ── HLS / src loader ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!videoRef.current || !currentSrc || typeof currentSrc !== "string") return;
     const video = videoRef.current;
-
     video.preload = "auto";
     const isHls = currentSrc.includes(".m3u8");
     let hlsInstance = null;
@@ -191,15 +187,12 @@ export default function CustomPlayer({
         if (data.fatal) {
           hlsInstance.destroy();
           if (usingFastSrcRef.current) {
-            console.warn("fastSrc HLS fatal error — falling back to final src");
             fastSrcFailed.current = true;
             capturedSwapTime.current = null;
             setUsingFastSrc(false);
             usingFastSrcRef.current = false;
             pendingSwap.current = false;
-            if (src && src !== currentSrc) {
-              setCurrentSrc(src);
-            }
+            if (src && src !== currentSrc) setCurrentSrc(src);
           } else if (fallbackSrc && currentSrc !== fallbackSrc) {
             setCurrentSrc(fallbackSrc);
           }
@@ -216,21 +209,16 @@ export default function CustomPlayer({
     const onWaiting = () => setIsLoading(true);
     const onPlaying = () => {
       setIsLoading(false);
-      if (pendingSwap.current && src && currentSrc !== src) {
-        swapToFinalSrc();
-      }
+      if (pendingSwap.current && src && currentSrc !== src) swapToFinalSrc();
     };
     const onError = () => {
       if (usingFastSrcRef.current) {
-        console.warn("fastSrc video error — falling back to final src");
         fastSrcFailed.current = true;
         capturedSwapTime.current = null;
         setUsingFastSrc(false);
         usingFastSrcRef.current = false;
         pendingSwap.current = false;
-        if (src && src !== currentSrc) {
-          setCurrentSrc(src);
-        }
+        if (src && src !== currentSrc) setCurrentSrc(src);
       } else if (fallbackSrc && currentSrc !== fallbackSrc) {
         setCurrentSrc(fallbackSrc);
       }
@@ -250,14 +238,14 @@ export default function CustomPlayer({
     };
   }, [currentSrc, fallbackSrc, src, swapToFinalSrc]);
 
-  // ─── Auto-hide controls ──────────────────────────────────────────────────
+  // ── Auto-hide controls ────────────────────────────────────────────────────
   useEffect(() => {
     if (!isPlaying || !showControls) return;
     const t = setTimeout(() => setShowControls(false), 3000);
     return () => clearTimeout(t);
   }, [showControls, isPlaying]);
 
-  // ─── Fullscreen orientation ───────────────────────────────────────────────
+  // ── Fullscreen orientation ────────────────────────────────────────────────
   useEffect(() => {
     const onFsChange = () => {
       if (!document.fullscreenElement) {
@@ -272,16 +260,13 @@ export default function CustomPlayer({
     };
   }, []);
 
-  // ─── Player callbacks ─────────────────────────────────────────────────────
+  // ── Player callbacks ──────────────────────────────────────────────────────
   const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
     if (isPlaying) {
       videoRef.current.pause();
       setIsPlaying(false);
-      if (onTimeUpdate) {
-        lastSavedTime.current = videoRef.current.currentTime;
-        onTimeUpdate(videoRef.current.currentTime);
-      }
+      if (onTimeUpdate) { lastSavedTime.current = videoRef.current.currentTime; onTimeUpdate(videoRef.current.currentTime); }
     } else {
       videoRef.current.play().catch(() => { });
       setIsPlaying(true);
@@ -300,40 +285,29 @@ export default function CustomPlayer({
   };
 
   const handleDurationChange = () => {
-    if (!apiDuration && videoRef.current && !isNaN(videoRef.current.duration)) {
+    if (!apiDuration && videoRef.current && !isNaN(videoRef.current.duration))
       setDuration(videoRef.current.duration);
-    }
   };
 
   const handleLoadedMetadata = () => {
     if (!videoRef.current) return;
     if (!apiDuration) setDuration(videoRef.current.duration);
-
     if (swapResumeTime.current !== null) {
       const t = swapResumeTime.current;
-      if (t > 0) {
-        videoRef.current.currentTime = t;
-        setCurrentTime(t);
-        lastSavedTime.current = t;
-      }
+      if (t > 0) { videoRef.current.currentTime = t; setCurrentTime(t); lastSavedTime.current = t; }
       initialTimeApplied.current = true;
-      if (swapWasPlaying.current) {
-        videoRef.current.play().catch(() => { });
-        setIsPlaying(true);
-      }
+      if (swapWasPlaying.current) { videoRef.current.play().catch(() => { }); setIsPlaying(true); }
       swapResumeTime.current = null;
       swapWasPlaying.current = false;
       containerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-
     if (initialTime && initialTime > 0 && !initialTimeApplied.current) {
       videoRef.current.currentTime = initialTime;
       setCurrentTime(initialTime);
       lastSavedTime.current = initialTime;
       initialTimeApplied.current = true;
     }
-
     containerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
@@ -354,7 +328,7 @@ export default function CustomPlayer({
     if (videoRef.current) {
       videoRef.current.volume = val;
       videoRef.current.muted = val === 0;
-      persistMute(val === 0); // FIX 1: use persistMute
+      persistMute(val === 0);
     }
   };
 
@@ -362,7 +336,7 @@ export default function CustomPlayer({
     if (!videoRef.current) return;
     const next = !isMuted;
     videoRef.current.muted = next;
-    persistMute(next); // FIX 1: use persistMute
+    persistMute(next);
     videoRef.current.volume = next ? 0 : (volume || 0.5);
   }, [isMuted, volume, persistMute]);
 
@@ -400,76 +374,37 @@ export default function CustomPlayer({
     setShowSettings(false);
   };
 
-  // ── FIX 2: Keyboard shortcuts — Space/K, Arrows, M, F ───────────────────
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Don't fire if user is typing in an input/textarea/select
       const tag = document.activeElement?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-
       switch (e.key) {
-        case " ":
-        case "k":
-          e.preventDefault();
-          togglePlay();
-          setShowControls(true);
-          break;
-
+        case " ": case "k": e.preventDefault(); togglePlay(); setShowControls(true); break;
         case "ArrowRight":
-          e.preventDefault();
-          skip(10);
-          setSkipIndicator("right");
-          setShowControls(true);
-          setTimeout(() => setSkipIndicator(null), 650);
-          break;
-
+          e.preventDefault(); skip(10); setSkipIndicator("right"); setShowControls(true);
+          setTimeout(() => setSkipIndicator(null), 650); break;
         case "ArrowLeft":
-          e.preventDefault();
-          skip(-10);
-          setSkipIndicator("left");
-          setShowControls(true);
-          setTimeout(() => setSkipIndicator(null), 650);
-          break;
-
+          e.preventDefault(); skip(-10); setSkipIndicator("left"); setShowControls(true);
+          setTimeout(() => setSkipIndicator(null), 650); break;
         case "ArrowUp":
           e.preventDefault();
           if (videoRef.current) {
             const v = Math.min(1, (isMuted ? 0 : volume) + 0.1);
-            videoRef.current.volume = v;
-            videoRef.current.muted = false;
-            setVolume(v);
-            persistMute(false);
-            setShowControls(true);
-          }
-          break;
-
+            videoRef.current.volume = v; videoRef.current.muted = false;
+            setVolume(v); persistMute(false); setShowControls(true);
+          } break;
         case "ArrowDown":
           e.preventDefault();
           if (videoRef.current) {
             const v = Math.max(0, (isMuted ? 0 : volume) - 0.1);
-            videoRef.current.volume = v;
-            setVolume(v);
-            persistMute(v === 0);
-            setShowControls(true);
-          }
-          break;
-
-        case "m":
-          e.preventDefault();
-          toggleMute();
-          setShowControls(true);
-          break;
-
-        case "f":
-          e.preventDefault();
-          handleFullscreen();
-          break;
-
-        default:
-          break;
+            videoRef.current.volume = v; setVolume(v); persistMute(v === 0); setShowControls(true);
+          } break;
+        case "m": e.preventDefault(); toggleMute(); setShowControls(true); break;
+        case "f": e.preventDefault(); handleFullscreen(); break;
+        default: break;
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [togglePlay, skip, toggleMute, handleFullscreen, isMuted, volume, persistMute]);
@@ -481,7 +416,7 @@ export default function CustomPlayer({
     return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
   };
 
-  // ─── Long-press 2× speed ──────────────────────────────────────────────────
+  // ── Long-press 2× speed ───────────────────────────────────────────────────
   const handleGestureStart = (e) => {
     if (e.button && e.button !== 0) return;
     wasLongPressing.current = false;
@@ -499,10 +434,7 @@ export default function CustomPlayer({
 
   const handleGestureEnd = () => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
-    if (is2xSpeed) {
-      if (videoRef.current) videoRef.current.playbackRate = prevRate.current;
-      setIs2xSpeed(false);
-    }
+    if (is2xSpeed) { if (videoRef.current) videoRef.current.playbackRate = prevRate.current; setIs2xSpeed(false); }
   };
 
   const handleSurfaceClick = (e) => {
@@ -512,19 +444,12 @@ export default function CustomPlayer({
     if (now - lastTap.current < 300) {
       if (containerRef.current && clientX) {
         const rect = containerRef.current.getBoundingClientRect();
-        if (clientX - rect.left < rect.width / 2) {
-          skip(-10); setSkipIndicator("left");
-        } else {
-          skip(10); setSkipIndicator("right");
-        }
+        if (clientX - rect.left < rect.width / 2) { skip(-10); setSkipIndicator("left"); }
+        else { skip(10); setSkipIndicator("right"); }
         setTimeout(() => setSkipIndicator(null), 650);
       }
-      togglePlay();
-      lastTap.current = 0;
-    } else {
-      lastTap.current = now;
-      togglePlay();
-    }
+      togglePlay(); lastTap.current = 0;
+    } else { lastTap.current = now; togglePlay(); }
   };
 
   const progress = (currentTime / (duration || 100)) * 100;
@@ -574,6 +499,26 @@ export default function CustomPlayer({
           <span>2x Speed</span>
           <SkipForward className="w-3.5 h-3.5 fill-white" />
         </div>
+      )}
+
+      {/* ── Fast/HLS toggle pill — top-right, only when both sources ready ── */}
+      {hasBothSources && (
+        <button
+          onClick={(e) => { e.stopPropagation(); handleToggleStream(); setShowControls(true); }}
+          title={streamMode === "fast" ? "Switch to HLS stream" : "Switch to Fast stream"}
+          className={[
+            "absolute top-3 right-3 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border backdrop-blur-md transition-all duration-200",
+            streamMode === "hls"
+              ? "bg-red-600/90 border-red-500/50 text-white shadow-lg shadow-red-900/30"
+              : "bg-black/60 border-white/15 text-white/80 hover:bg-black/80 hover:text-white",
+          ].join(" ")}
+        >
+          {streamMode === "hls" ? (
+            <><Layers className="w-3 h-3" /><span>HLS</span></>
+          ) : (
+            <><Zap className="w-3 h-3" /><span>Fast</span></>
+          )}
+        </button>
       )}
 
       {/* Skip indicators */}
@@ -646,6 +591,26 @@ export default function CustomPlayer({
           </div>
 
           <div className="flex items-center gap-3">
+            {/* ── Fast/HLS toggle in control bar (mirrors top-right pill) ── */}
+            {hasBothSources && (
+              <button
+                onClick={handleToggleStream}
+                title={streamMode === "fast" ? "Switch to HLS" : "Switch to Fast"}
+                className={[
+                  "flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border transition-all",
+                  streamMode === "hls"
+                    ? "bg-red-600/80 border-red-500/40 text-white"
+                    : "bg-white/10 border-white/15 text-white/70 hover:bg-white/20 hover:text-white",
+                ].join(" ")}
+              >
+                {streamMode === "hls" ? (
+                  <><Layers className="w-3 h-3" /><span>HLS</span></>
+                ) : (
+                  <><Zap className="w-3 h-3" /><span>Fast</span></>
+                )}
+              </button>
+            )}
+
             <div className="relative">
               <button onClick={() => setShowSettings(!showSettings)} className="text-white hover:text-red-500 transition-colors p-1">
                 <Settings className="w-5 h-5" />

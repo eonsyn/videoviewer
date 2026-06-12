@@ -7,6 +7,7 @@ import HistoryList from "@/components/history/HistoryList";
 import CustomPlayer from "./CustomPlayer";
 import VideoDetails from "./VideoDetails.js";
 import OtherFileFound from "./OtherFileFound";
+import FileSelector from "./FileSelector";
 import { isVideoFile } from "@/utils/isVideoFile";
 import UrlError from "./UrlError.js";
 
@@ -21,20 +22,20 @@ export default function Converter({ token, url }) {
   const [autoplay, setAutoplay] = useState(true);
   const [fastStreamSrc, setFastStreamSrc] = useState(null);
   const [finalStreamSrc, setFinalStreamSrc] = useState(null);
+  const [hlsReady, setHlsReady] = useState(false);
+  const [fileList, setFileList] = useState(null);
+  const [activeFileId, setActiveFileId] = useState(null);
+  const [surl, setSurl] = useState(null);
 
-  // Load autoplay preference from localStorage on mount
   useEffect(() => {
     try {
       const savedAutoplay = localStorage.getItem("autoplayPreference");
-      if (savedAutoplay !== null) {
-        setAutoplay(JSON.parse(savedAutoplay));
-      }
+      if (savedAutoplay !== null) setAutoplay(JSON.parse(savedAutoplay));
     } catch (e) {
       console.error("Failed to read autoplay preference:", e);
     }
   }, []);
 
-  // Wrapper function to update state and localStorage together
   const handleAutoplayChange = (newValue) => {
     setAutoplay(newValue);
     try {
@@ -42,6 +43,126 @@ export default function Converter({ token, url }) {
     } catch (e) {
       console.error("Failed to save autoplay preference:", e);
     }
+  };
+
+  // ─── Core loader ──────────────────────────────────────────────────────────
+  const loadVideoFile = async (fileData, existingProgress = 0, surlKey = null) => {
+    setLoading(true);
+    setError(null);
+    setFastStreamSrc(null);
+    setFinalStreamSrc(null);
+    setHlsReady(false);
+    setSelectedVideo(null);
+
+    const currentFileId = fileData.fs_id || fileData.stream_id || null;
+    setActiveFileId(currentFileId);
+
+    const historyKey = surlKey || url;
+
+    try {
+      const fastUrl = resolveFastUrl(fileData.fastStreamUrl);
+      const rawHlsUrl = fileData.stream;
+
+      if (fastUrl) {
+        const prelimObj = buildVideoObj(fileData, fastUrl, existingProgress);
+        setSelectedVideo(prelimObj);
+        setFastStreamSrc(fastUrl);
+        setLoading(false);
+      }
+
+      let finalUrl = rawHlsUrl;
+
+      if (rawHlsUrl?.includes("/playlist/") && rawHlsUrl.includes(".m3u8")) {
+        try {
+          const u = new URL(rawHlsUrl);
+          const match = u.pathname.match(/\/playlist\/([a-f0-9]{32})\.m3u8/);
+
+          if (match) {
+            const streamId = match[1];
+            const playlistToken = u.searchParams.get("token");
+            const base = `${u.protocol}//${u.host}`;
+
+            if (playlistToken && base) {
+              const preCheckRes = await fetch(`${base}/status/${streamId}`);
+              const preCheckData = await preCheckRes.json();
+
+              if (!preCheckData.ready) {
+                const convertRes = await fetch(
+                  `${base}/convert?token=${encodeURIComponent(playlistToken)}`,
+                  { method: "POST" }
+                );
+                if (!convertRes.ok) throw new Error(`/convert returned HTTP ${convertRes.status}`);
+                const convertData = await convertRes.json();
+
+                if (convertData.status === "already_done") {
+                  const confirmRes = await fetch(`${base}/status/${streamId}`);
+                  const confirmData = await confirmRes.json();
+                  if (!confirmData.ready) await pollUntilReady(base, streamId);
+                } else {
+                  await pollUntilReady(base, streamId);
+                }
+              }
+            }
+          }
+          setHlsReady(true);
+        } catch (hlsErr) {
+          console.error("HLS conversion error:", hlsErr);
+          finalUrl = fastUrl || rawHlsUrl;
+          setHlsReady(false);
+        }
+      }
+
+      const finalObj = buildVideoObj(fileData, finalUrl, existingProgress);
+      setSelectedVideo(finalObj);
+      setFinalStreamSrc(finalUrl);
+      if (!fastUrl) setLoading(false);
+
+      // ── Update history entry: upsert this file into its files array ───────
+      addEntry({
+        url:          historyKey,
+        activeFileId: currentFileId,
+        title:        finalObj.name,
+        filename:     finalObj.filename,
+        thumbnail:    finalObj.thumbnail,
+        // single-file fields (addEntry will upsert into files[])
+        fs_id:              currentFileId,
+        stream_url:         finalUrl,
+        fast_stream_url:    fastUrl || "",
+        duration_seconds:   finalObj.duration_seconds,
+        size_formatted:     finalObj.size_formatted,
+        duration_formatted: finalObj.duration_formatted,
+        quality:            finalObj.quality,
+        width:              fileData.width,
+        height:             fileData.height,
+        category:           fileData.category || "",
+        progress:           existingProgress,
+      });
+    } catch (err) {
+      console.error("Load video error:", err);
+      setError(err.message || "Something went wrong");
+      setLoading(false);
+    }
+  };
+
+  // ─── Called when user clicks a file in FileSelector ───────────────────────
+  const handleFileSelect = async (file) => {
+    const historyKey = surl || url;
+    let existingProgress = 0;
+    try {
+      const stored = localStorage.getItem("videoHistory");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const existingEntry = parsed.find((h) => h.url === historyKey);
+        if (existingEntry) {
+          // Try to get per-file progress first, fall back to entry-level
+          const fileRecord = existingEntry.files?.find(
+            (f) => f.fs_id === (file.fs_id || file.stream_id)
+          );
+          existingProgress = fileRecord?.progress || existingEntry.progress || 0;
+        }
+      }
+    } catch (e) { /* ignore */ }
+    await loadVideoFile(file, existingProgress, surl);
   };
 
   useEffect(() => {
@@ -53,25 +174,62 @@ export default function Converter({ token, url }) {
         setError(null);
         setFastStreamSrc(null);
         setFinalStreamSrc(null);
+        setHlsReady(false);
         setSelectedVideo(null);
+        setFileList(null);
+        setActiveFileId(null);
+        setSurl(null);
 
+        // ── Cache check ────────────────────────────────────────────────────
         try {
           const stored = localStorage.getItem("videoHistory");
           if (stored) {
             const parsedHistory = JSON.parse(stored);
-            const hit = parsedHistory.find((h) => h.url === url);
+            // Check both by page url and by surl (entry.url may be a surl)
+            const hit = parsedHistory.find((h) => h.url === url)
+              || parsedHistory.find((h) =>
+                  h.files?.some((f) => f.stream_url?.includes(url))
+                );
 
-            if (hit?.stream_url && hit?.watchedAt) {
+            if (hit?.watchedAt) {
               const isCacheValid = Date.now() - Number(hit.watchedAt) < TWO_HOURS_MS;
+              if (isCacheValid && hit.files?.length) {
+                // Restore full file list from cache
+                const cachedFiles = hit.files.map((f) => ({
+                  fs_id:        f.fs_id,
+                  filename:     f.filename,
+                  stream:       f.stream_url,
+                  fastStreamUrl: f.fast_stream_url,
+                  thumb:        f.thumbnail,
+                  duration:     f.duration_seconds,
+                  width:        f.width,
+                  height:       f.height,
+                  size:         f.size_formatted,
+                  category:     f.category || "",
+                }));
 
-              if (isCacheValid) {
-                const fast = resolveFastUrl(hit.fast_stream_url);
-                const final = hit.stream_url;
-                const videoObj = buildCachedVideoObj(hit);
+                setSurl(hit.url !== url ? hit.url : null);
+                setFileList(cachedFiles);
 
+                // Load the last-active file (or first)
+                const activeFile = cachedFiles.find(
+                  (f) => f.fs_id === hit.activeFileId
+                ) || cachedFiles[0];
+
+                const activeRecord = hit.files.find(
+                  (f) => f.fs_id === activeFile.fs_id
+                );
+                const cachedProgress = activeRecord?.progress || hit.progress || 0;
+
+                const fast = resolveFastUrl(activeFile.fastStreamUrl);
+                const final = activeFile.stream;
+                const videoObj = buildCachedVideoObj(activeRecord || hit, activeFile);
+
+                setActiveFileId(activeFile.fs_id);
                 setSelectedVideo(videoObj);
                 setFastStreamSrc(fast || final);
                 setFinalStreamSrc(final);
+                if (fast && final && fast !== final) setHlsReady(true);
                 setLoading(false);
                 return;
               }
@@ -81,6 +239,7 @@ export default function Converter({ token, url }) {
           console.error("Cache read failed:", e);
         }
 
+        // ── API call ───────────────────────────────────────────────────────
         const res = await fetch("https://secure-api-2ae3.onrender.com/api/secure", {
           method: "POST",
           headers: {
@@ -102,98 +261,64 @@ export default function Converter({ token, url }) {
           return;
         }
 
-        const videoData = data.response;
-        if (!videoData) throw new Error("No video data found in response");
+        const responseData = data.response;
+        if (!responseData) throw new Error("No data found in response");
 
+        let files = [];
+        let responseSurl = null;
+
+        if (Array.isArray(responseData.files) && responseData.files.length > 0) {
+          files = responseData.files;
+          responseSurl = responseData.surl || null;
+        } else if (responseData.filename || responseData.stream) {
+          files = [responseData];
+          responseSurl = responseData.surl || null;
+        } else {
+          throw new Error("No video data found in response");
+        }
+
+        setSurl(responseSurl);
+
+        const historyKey = responseSurl || url;
         let existingProgress = 0;
         try {
           const stored = localStorage.getItem("videoHistory");
           if (stored) {
             const parsed = JSON.parse(stored);
-            const existing = parsed.find((h) => h.url === url);
+            const existing = parsed.find((h) => h.url === historyKey);
             if (existing) existingProgress = existing.progress || 0;
           }
-        } catch (e) {
-          console.error("Progress read failed:", e);
-        }
+        } catch (e) { /* ignore */ }
 
-        const fastUrl = resolveFastUrl(videoData.fastStreamUrl);
-        const rawHlsUrl = videoData.stream;
+        setFileList(files);
 
-        if (fastUrl) {
-          const prelimObj = buildApiVideoObj(videoData, fastUrl, existingProgress);
-          setSelectedVideo(prelimObj);
-          setFastStreamSrc(fastUrl);
-          setLoading(false);
-        }
-
-        let finalUrl = rawHlsUrl;
-
-        if (rawHlsUrl?.includes("/playlist/") && rawHlsUrl.includes(".m3u8")) {
-          try {
-            const u = new URL(rawHlsUrl);
-            const match = u.pathname.match(/\/playlist\/([a-f0-9]{32})\.m3u8/);
-
-            if (match) {
-              const streamId = match[1];
-              const playlistToken = u.searchParams.get("token");
-              const base = `${u.protocol}//${u.host}`;
-
-              if (playlistToken && base) {
-                const preCheckRes = await fetch(`${base}/status/${streamId}`);
-                const preCheckData = await preCheckRes.json();
-
-                if (preCheckData.ready) {
-                  // Already ready
-                } else {
-                  const convertRes = await fetch(
-                    `${base}/convert?token=${encodeURIComponent(playlistToken)}`,
-                    { method: "POST" }
-                  );
-                  if (!convertRes.ok) throw new Error(`/convert returned HTTP ${convertRes.status}`);
-                  const convertData = await convertRes.json();
-
-                  if (convertData.status === "already_done") {
-                    const confirmRes = await fetch(`${base}/status/${streamId}`);
-                    const confirmData = await confirmRes.json();
-                    if (!confirmData.ready) {
-                      await pollUntilReady(base, streamId, fastUrl);
-                    }
-                  } else {
-                    await pollUntilReady(base, streamId, fastUrl);
-                  }
-                }
-              }
-            }
-          } catch (hlsErr) {
-            console.error("HLS conversion error:", hlsErr);
-            finalUrl = fastUrl || rawHlsUrl;
-          }
-        }
-
-        const finalObj = buildApiVideoObj(videoData, finalUrl, existingProgress);
-        setSelectedVideo(finalObj);
-        setFinalStreamSrc(finalUrl);
-
-        if (!fastUrl) setLoading(false);
-
+        // ── Register ALL files into history immediately ────────────────────
+        // This ensures every file appears in the sidebar before playback starts.
         addEntry({
-          url,
-          title: finalObj.name,
-          description: finalObj.description,
-          filename: finalObj.filename,
-          thumbnail: finalObj.thumbnail,
-          stream_url: finalUrl,
-          fast_stream_url: fastUrl || "",
-          duration_seconds: finalObj.duration_seconds,
-          size_formatted: finalObj.size_formatted,
-          duration_formatted: finalObj.duration_formatted,
-          quality: finalObj.quality,
-          width: videoData.width,
-          height: videoData.height,
-          category: videoData.category || "",
-          progress: existingProgress,
+          url:          historyKey,
+          activeFileId: files[0]?.fs_id || files[0]?.stream_id,
+          title:        files[0]?.filename || "",
+          thumbnail:    files[0]?.thumb || "",
+          progress:     existingProgress,
+          files: files.map((f) => ({
+            fs_id:              f.fs_id || f.stream_id,
+            filename:           f.filename,
+            title:              f.filename,
+            thumbnail:          f.thumb || "",
+            stream_url:         f.stream,
+            fast_stream_url:    resolveFastUrl(f.fastStreamUrl) || "",
+            duration_seconds:   f.duration || null,
+            size_formatted:     formatSize(f.size),
+            duration_formatted: formatDuration(f.duration),
+            quality:            f.width && f.height ? `${f.width}x${f.height}` : "",
+            width:              f.width || null,
+            height:             f.height || null,
+            category:           f.category || "",
+          })),
         });
+
+        // Auto-load the first file
+        await loadVideoFile(files[0], existingProgress, responseSurl);
 
       } catch (err) {
         console.error("Fetch error:", err);
@@ -203,9 +328,10 @@ export default function Converter({ token, url }) {
     };
 
     fetchStreamData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, token]);
 
-  async function pollUntilReady(base, streamId, fastUrl) {
+  async function pollUntilReady(base, streamId) {
     let ready = false;
     while (!ready) {
       await new Promise((r) => setTimeout(r, 3000));
@@ -240,42 +366,44 @@ export default function Converter({ token, url }) {
     return `${m}:${String(sec).padStart(2, "0")}`;
   }
 
-  function buildApiVideoObj(videoData, streamUrl, progress) {
+  function buildVideoObj(fileData, streamUrl, progress) {
     return {
-      name: videoData.filename || "video.mp4",
-      filename: videoData.filename || "video.mp4",
-      description: videoData.description || "",
-      thumbnail: videoData.thumb || "",
-      size_formatted: formatSize(videoData.size),
-      duration_seconds: videoData.duration,
-      duration_formatted: formatDuration(videoData.duration),
-      quality: `${videoData.width}x${videoData.height}`,
-      download_link: streamUrl,
-      stream_url: streamUrl,
-      fast_stream_url: videoData.fastStreamUrl || "",
+      name:              fileData.filename || "video.mp4",
+      filename:          fileData.filename || "video.mp4",
+      description:       fileData.description || "",
+      thumbnail:         fileData.thumb || "",
+      size_formatted:    formatSize(fileData.size),
+      duration_seconds:  fileData.duration,
+      duration_formatted: formatDuration(fileData.duration),
+      quality:           `${fileData.width}x${fileData.height}`,
+      download_link:     streamUrl,
+      stream_url:        streamUrl,
+      fast_stream_url:   fileData.fastStreamUrl || "",
       progress,
-      fs_id: videoData.fs_id || videoData.surl,
-      ...videoData,
+      fs_id:             fileData.fs_id || fileData.surl,
+      ...fileData,
     };
   }
 
-  function buildCachedVideoObj(hit) {
+  // Reconstruct a video object from a cached history file record + raw file shape
+  function buildCachedVideoObj(fileRecord, rawFile) {
     return {
-      name: hit.title || "video.mp4",
-      filename: hit.filename || "video.mp4",
-      description: hit.description || "",
-      thumbnail: hit.thumbnail || "",
-      duration_seconds: hit.duration_seconds,
-      stream_url: hit.stream_url,
-      fast_stream_url: hit.fast_stream_url || "",
-      download_link: hit.stream_url,
-      progress: hit.progress || 0,
-      size_formatted: hit.size_formatted || "",
-      duration_formatted: hit.duration_formatted || formatDuration(hit.duration_seconds),
-      quality: hit.quality || "",
-      width: hit.width || null,
-      height: hit.height || null,
-      category: hit.category || "",
+      name:              fileRecord.title || fileRecord.filename || rawFile?.filename || "video.mp4",
+      filename:          fileRecord.filename || rawFile?.filename || "video.mp4",
+      description:       fileRecord.description || "",
+      thumbnail:         fileRecord.thumbnail || rawFile?.thumb || "",
+      duration_seconds:  fileRecord.duration_seconds,
+      stream_url:        fileRecord.stream_url || rawFile?.stream,
+      fast_stream_url:   fileRecord.fast_stream_url || resolveFastUrl(rawFile?.fastStreamUrl) || "",
+      download_link:     fileRecord.stream_url || rawFile?.stream,
+      progress:          fileRecord.progress || 0,
+      size_formatted:    fileRecord.size_formatted || "",
+      duration_formatted: fileRecord.duration_formatted || formatDuration(fileRecord.duration_seconds),
+      quality:           fileRecord.quality || "",
+      width:             fileRecord.width || rawFile?.width || null,
+      height:            fileRecord.height || rawFile?.height || null,
+      category:          fileRecord.category || "",
+      fs_id:             fileRecord.fs_id,
     };
   }
 
@@ -302,7 +430,6 @@ export default function Converter({ token, url }) {
   return (
     <div style={{ width: "100%", maxWidth: "1600px", margin: "0 auto", boxSizing: "border-box" }}>
 
-      {/* Error overlay */}
       {error && <UrlError error={error} setError={setError} />}
 
       <div style={{
@@ -313,10 +440,9 @@ export default function Converter({ token, url }) {
         flexWrap: "wrap",
       }}>
 
-        {/* ── LEFT: Player + Details ── */}
+        {/* ── LEFT: Player + FileSelector + Details ── */}
         <div style={{ flex: "1 1 0%", minWidth: 0 }}>
 
-          {/* Loading state */}
           {loading && !error && (
             <div style={{
               borderRadius: "12px",
@@ -327,7 +453,6 @@ export default function Converter({ token, url }) {
             </div>
           )}
 
-          {/* Player */}
           {!loading && !error && selectedVideo && (fastStreamSrc || finalStreamSrc) && (
             <>
               {isVideoFile(selectedVideo.filename) ? (
@@ -352,7 +477,9 @@ export default function Converter({ token, url }) {
                     subtitleUrl={selectedVideo.subtitle_url}
                     onEnded={handleVideoEnded}
                     initialTime={selectedVideo.progress}
-                    onTimeUpdate={(t) => updateProgress(url, t)}
+                    // Pass fileId so progress is tracked per-file
+                    onTimeUpdate={(t) => updateProgress(surl || url, t, selectedVideo.fs_id)}
+                    hlsReady={hlsReady}
                   />
                 </div>
               ) : (
@@ -361,18 +488,28 @@ export default function Converter({ token, url }) {
                   download={fastStreamSrc || finalStreamSrc}
                 />
               )}
-
-              <VideoDetails
-                selectedVideo={selectedVideo}
-                handleDownload={handleDownload}
-              />
             </>
+          )}
+
+          {!error && fileList && fileList.length > 0 && (
+            <FileSelector
+              files={fileList}
+              activeFileId={activeFileId}
+              onSelect={handleFileSelect}
+              loadingFileId={loading ? activeFileId : null}
+            />
+          )}
+
+          {!loading && !error && selectedVideo && (fastStreamSrc || finalStreamSrc) && (
+            <VideoDetails
+              selectedVideo={selectedVideo}
+              handleDownload={handleDownload}
+            />
           )}
         </div>
 
         {/* ── RIGHT: History Sidebar ── */}
         <div className="converter-sidebar">
-          {/* Note the prop change here to pass our new wrapper function */}
           <HistoryList
             autoplay={autoplay}
             setAutoplay={handleAutoplayChange}
@@ -386,7 +523,6 @@ export default function Converter({ token, url }) {
           width: 380px;
           flex-shrink: 0;
         }
-
         @media (max-width: 1023px) {
           .converter-sidebar {
             width: 100%;

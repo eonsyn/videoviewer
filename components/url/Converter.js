@@ -10,6 +10,7 @@ import OtherFileFound from "./OtherFileFound";
 import FileSelector from "./FileSelector";
 import { isVideoFile } from "@/utils/isVideoFile";
 import UrlError from "./UrlError.js";
+import SurpriseMe from "../surprise/SurpriseMe.js";
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 
@@ -119,23 +120,23 @@ export default function Converter({ token, url }) {
 
       // ── Update history entry: upsert this file into its files array ───────
       addEntry({
-        url:          historyKey,
+        url: historyKey,
         activeFileId: currentFileId,
-        title:        finalObj.name,
-        filename:     finalObj.filename,
-        thumbnail:    finalObj.thumbnail,
+        title: finalObj.name,
+        filename: finalObj.filename,
+        thumbnail: finalObj.thumbnail,
         // single-file fields (addEntry will upsert into files[])
-        fs_id:              currentFileId,
-        stream_url:         finalUrl,
-        fast_stream_url:    fastUrl || "",
-        duration_seconds:   finalObj.duration_seconds,
-        size_formatted:     finalObj.size_formatted,
+        fs_id: currentFileId,
+        stream_url: finalUrl,
+        fast_stream_url: fastUrl || "",
+        duration_seconds: finalObj.duration_seconds,
+        size_formatted: finalObj.size_formatted,
         duration_formatted: finalObj.duration_formatted,
-        quality:            finalObj.quality,
-        width:              fileData.width,
-        height:             fileData.height,
-        category:           fileData.category || "",
-        progress:           existingProgress,
+        quality: finalObj.quality,
+        width: fileData.width,
+        height: fileData.height,
+        category: fileData.category || "",
+        progress: existingProgress,
       });
     } catch (err) {
       console.error("Load video error:", err);
@@ -188,24 +189,24 @@ export default function Converter({ token, url }) {
             // Check both by page url and by surl (entry.url may be a surl)
             const hit = parsedHistory.find((h) => h.url === url)
               || parsedHistory.find((h) =>
-                  h.files?.some((f) => f.stream_url?.includes(url))
-                );
+                h.files?.some((f) => f.stream_url?.includes(url))
+              );
 
             if (hit?.watchedAt) {
               const isCacheValid = Date.now() - Number(hit.watchedAt) < TWO_HOURS_MS;
               if (isCacheValid && hit.files?.length) {
                 // Restore full file list from cache
                 const cachedFiles = hit.files.map((f) => ({
-                  fs_id:        f.fs_id,
-                  filename:     f.filename,
-                  stream:       f.stream_url,
+                  fs_id: f.fs_id,
+                  filename: f.filename,
+                  stream: f.stream_url,
                   fastStreamUrl: f.fast_stream_url,
-                  thumb:        f.thumbnail,
-                  duration:     f.duration_seconds,
-                  width:        f.width,
-                  height:       f.height,
-                  size:         f.size_formatted,
-                  category:     f.category || "",
+                  thumb: f.thumbnail,
+                  duration: f.duration_seconds,
+                  width: f.width,
+                  height: f.height,
+                  size: f.size_formatted,
+                  category: f.category || "",
                 }));
 
                 setSurl(hit.url !== url ? hit.url : null);
@@ -295,25 +296,25 @@ export default function Converter({ token, url }) {
         // ── Register ALL files into history immediately ────────────────────
         // This ensures every file appears in the sidebar before playback starts.
         addEntry({
-          url:          historyKey,
+          url: historyKey,
           activeFileId: files[0]?.fs_id || files[0]?.stream_id,
-          title:        files[0]?.filename || "",
-          thumbnail:    files[0]?.thumb || "",
-          progress:     existingProgress,
+          title: files[0]?.filename || "",
+          thumbnail: files[0]?.thumb || "",
+          progress: existingProgress,
           files: files.map((f) => ({
-            fs_id:              f.fs_id || f.stream_id,
-            filename:           f.filename,
-            title:              f.filename,
-            thumbnail:          f.thumb || "",
-            stream_url:         f.stream,
-            fast_stream_url:    resolveFastUrl(f.fastStreamUrl) || "",
-            duration_seconds:   f.duration || null,
-            size_formatted:     formatSize(f.size),
+            fs_id: f.fs_id || f.stream_id,
+            filename: f.filename,
+            title: f.filename,
+            thumbnail: f.thumb || "",
+            stream_url: f.stream,
+            fast_stream_url: resolveFastUrl(f.fastStreamUrl) || "",
+            duration_seconds: f.duration || null,
+            size_formatted: formatSize(f.size),
             duration_formatted: formatDuration(f.duration),
-            quality:            f.width && f.height ? `${f.width}x${f.height}` : "",
-            width:              f.width || null,
-            height:             f.height || null,
-            category:           f.category || "",
+            quality: f.width && f.height ? `${f.width}x${f.height}` : "",
+            width: f.width || null,
+            height: f.height || null,
+            category: f.category || "",
           })),
         });
 
@@ -368,19 +369,19 @@ export default function Converter({ token, url }) {
 
   function buildVideoObj(fileData, streamUrl, progress) {
     return {
-      name:              fileData.filename || "video.mp4",
-      filename:          fileData.filename || "video.mp4",
-      description:       fileData.description || "",
-      thumbnail:         fileData.thumb || "",
-      size_formatted:    formatSize(fileData.size),
-      duration_seconds:  fileData.duration,
+      name: fileData.filename || "video.mp4",
+      filename: fileData.filename || "video.mp4",
+      description: fileData.description || "",
+      thumbnail: fileData.thumb || "",
+      size_formatted: formatSize(fileData.size),
+      duration_seconds: fileData.duration,
       duration_formatted: formatDuration(fileData.duration),
-      quality:           `${fileData.width}x${fileData.height}`,
-      download_link:     streamUrl,
-      stream_url:        streamUrl,
-      fast_stream_url:   fileData.fastStreamUrl || "",
+      quality: `${fileData.width}x${fileData.height}`,
+      download_link: streamUrl,
+      stream_url: streamUrl,
+      fast_stream_url: fileData.fastStreamUrl || "",
       progress,
-      fs_id:             fileData.fs_id || fileData.surl,
+      fs_id: fileData.fs_id || fileData.surl,
       ...fileData,
     };
   }
@@ -388,22 +389,22 @@ export default function Converter({ token, url }) {
   // Reconstruct a video object from a cached history file record + raw file shape
   function buildCachedVideoObj(fileRecord, rawFile) {
     return {
-      name:              fileRecord.title || fileRecord.filename || rawFile?.filename || "video.mp4",
-      filename:          fileRecord.filename || rawFile?.filename || "video.mp4",
-      description:       fileRecord.description || "",
-      thumbnail:         fileRecord.thumbnail || rawFile?.thumb || "",
-      duration_seconds:  fileRecord.duration_seconds,
-      stream_url:        fileRecord.stream_url || rawFile?.stream,
-      fast_stream_url:   fileRecord.fast_stream_url || resolveFastUrl(rawFile?.fastStreamUrl) || "",
-      download_link:     fileRecord.stream_url || rawFile?.stream,
-      progress:          fileRecord.progress || 0,
-      size_formatted:    fileRecord.size_formatted || "",
+      name: fileRecord.title || fileRecord.filename || rawFile?.filename || "video.mp4",
+      filename: fileRecord.filename || rawFile?.filename || "video.mp4",
+      description: fileRecord.description || "",
+      thumbnail: fileRecord.thumbnail || rawFile?.thumb || "",
+      duration_seconds: fileRecord.duration_seconds,
+      stream_url: fileRecord.stream_url || rawFile?.stream,
+      fast_stream_url: fileRecord.fast_stream_url || resolveFastUrl(rawFile?.fastStreamUrl) || "",
+      download_link: fileRecord.stream_url || rawFile?.stream,
+      progress: fileRecord.progress || 0,
+      size_formatted: fileRecord.size_formatted || "",
       duration_formatted: fileRecord.duration_formatted || formatDuration(fileRecord.duration_seconds),
-      quality:           fileRecord.quality || "",
-      width:             fileRecord.width || rawFile?.width || null,
-      height:            fileRecord.height || rawFile?.height || null,
-      category:          fileRecord.category || "",
-      fs_id:             fileRecord.fs_id,
+      quality: fileRecord.quality || "",
+      width: fileRecord.width || rawFile?.width || null,
+      height: fileRecord.height || rawFile?.height || null,
+      category: fileRecord.category || "",
+      fs_id: fileRecord.fs_id,
     };
   }
 
@@ -431,7 +432,7 @@ export default function Converter({ token, url }) {
     <div style={{ width: "100%", maxWidth: "1600px", margin: "0 auto", boxSizing: "border-box" }}>
 
       {error && <UrlError error={error} setError={setError} />}
-
+   
       <div style={{
         display: "flex",
         flexDirection: "row",
@@ -499,7 +500,8 @@ export default function Converter({ token, url }) {
               loadingFileId={loading ? activeFileId : null}
             />
           )}
-
+          
+      <SurpriseMe token={token} />
           {!loading && !error && selectedVideo && (fastStreamSrc || finalStreamSrc) && (
             <VideoDetails
               selectedVideo={selectedVideo}
@@ -517,7 +519,6 @@ export default function Converter({ token, url }) {
         </div>
 
       </div>
-
       <style>{`
         .converter-sidebar {
           width: 380px;

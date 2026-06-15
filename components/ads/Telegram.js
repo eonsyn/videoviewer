@@ -9,7 +9,7 @@ export default function Telegram() {
             className="
                 group
                 fixed
-                bottom-10
+                bottom-24
                 left-0
                 z-50
                 flex

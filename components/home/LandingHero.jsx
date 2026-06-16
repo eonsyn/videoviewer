@@ -1,7 +1,7 @@
 import { Shield, Zap, Globe, Lock } from "lucide-react";
 import TakeUrl from "@/components/home/TakeUrl";
 
-export default function LandingHero() {
+export default function LandingHero({token}) {
   const badges = [
     { icon: <Shield size={12} />, text: "No Login" },
     { icon: <Zap size={12} />, text: "Instant" },
@@ -107,7 +107,7 @@ export default function LandingHero() {
 
         {/* URL input */}
         <div style={{ animation: "fadeInUp 0.6s ease forwards 0.45s", opacity: 0 }}>
-          <TakeUrl />
+          <TakeUrl token={token} />
         </div>
 
         {/* Social proof */}

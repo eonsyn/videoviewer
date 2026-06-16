@@ -431,7 +431,7 @@ export default function Converter({ token, url }) {
   return (
     <div style={{ width: "100%", maxWidth: "1600px", margin: "0 auto", boxSizing: "border-box" }}>
 
-      {error && <UrlError error={error} setError={setError} />}
+      {error && <UrlError error={error} token={token} setError={setError} />}
    
       <div style={{
         display: "flex",

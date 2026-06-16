@@ -17,8 +17,8 @@ export default function Telegram() {
                 gap-2
                 bg-sky-500
                 text-white
-                px-4
-                py-3
+                px-2
+                py-2
                 rounded-r-xl
                 shadow-lg
                 overflow-hidden
@@ -39,7 +39,7 @@ export default function Telegram() {
                 Join Now
             </span>
             <FaTelegramPlane
-                size={32}
+                size={18}
                 className=" 
                 animate-bounce
                     transition-transform

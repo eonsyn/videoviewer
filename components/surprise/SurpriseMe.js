@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Gift, X, Loader2, AlertCircle, CheckCircle2, PartyPopper, Sparkles, } from "lucide-react";
+import { Gift, X, Loader2, AlertCircle, CheckCircle2, PartyPopper, Sparkles,ArrowUpRight } from "lucide-react";
 
 const STORAGE_KEY = "seen_surprises_cache";
 const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -444,7 +444,7 @@ export default function SurpriseMe({ token, variant = "full" }) {
                 ) : opened ? (
                   <CheckCircle2 size={15} style={{ color: "#fff" }} />
                 ) : (
-                  <Gift
+                  <ArrowUpRight
                     size={15}
                     style={{
                       color: availableSurprises.length === 0

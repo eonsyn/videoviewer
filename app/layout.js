@@ -5,25 +5,25 @@ import Script from "next/script";
 import { HistoryProvider } from "@/components/history/HistoryProvider";
 import Telegram from "@/components/ads/Telegram";
 export const metadata = {
-  title: "TeraFetch | Free TeraBox Video & File Downloader",
+  title: "PlayTera | Free TeraBox Video & File Downloader",
   description: "Download TeraBox videos and files instantly with TeraFetch. 100% working, fast, secure, and free TeraBox downloader that generates direct download links in seconds.",
   keywords: ["TeraBox video downloader", "terafetch", "free terabox download", "terabox direct link generator"],
-  authors: [{ name: "TeraFetch Team" }],
+  authors: [{ name: "PlayTera Team" }],
   openGraph: {
-    title: "TeraFetch | Free TeraBox Downloader | Fast & Secure",
+    title: "PlayTera | Free TeraBox Downloader | Fast & Secure",
     description: "Generate direct download links for TeraBox videos and files with TeraFetch. Fast, secure, and easy to use — no login required.",
-    url: "https://terafetch.netlify.app",
+    url: "https://playtera.netlify.app",
     siteName: "TeraFetch",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "TeraFetch | Free TeraBox Downloader",
-    description: "Download videos and files from TeraBox instantly using TeraFetch | 100% working and secure.",
+    title: "PlayTera | Free TeraBox Downloader",
+    description: "Download videos and files from TeraBox instantly using PlayTera | 100% working and secure.",
   },
-  metadataBase: new URL("https://terafetch.netlify.app"),
-  alternates: { canonical: "https://terafetch.netlify.app" },
+  metadataBase: new URL("https://playtera.netlify.app"),
+  alternates: { canonical: "https://playtera.netlify.app" },
 };
 
 export default function RootLayout({ children }) {

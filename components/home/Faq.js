@@ -3,10 +3,10 @@ import { useState } from "react";
 import { HelpCircle, ChevronDown } from "lucide-react";
 
 const faqs = [
-  { q: "How does TeraFetch work?", a: "TeraFetch generates direct download links for files hosted on TeraBox. Simply paste a public TeraBox link, and we resolve it to a direct, fast download URL — no login required." },
-  { q: "Can I generate unlimited download links?", a: "Yes! TeraFetch is completely free and unlimited. Generate as many direct download links as you need." },
-  { q: "Does it work with all TeraBox links?", a: "TeraFetch supports public TeraBox share links for individual files. Folder links are not currently supported — we're working on adding that feature." },
-  { q: "Is it legal to use this tool?", a: "Yes, as long as you're downloading content you have legal rights to access. TeraFetch only generates links for publicly shared files." },
+  { q: "How does PlayTera work?", a: "PlayTera generates direct download links for files hosted on TeraBox. Simply paste a public TeraBox link, and we resolve it to a direct, fast download URL — no login required." },
+  { q: "Can I generate unlimited download links?", a: "Yes! PlayTera is completely free and unlimited. Generate as many direct download links as you need." },
+  { q: "Does it work with all TeraBox links?", a: "PlayTera supports public TeraBox share links for individual files. Folder links are not currently supported — we're working on adding that feature." },
+  { q: "Is it legal to use this tool?", a: "Yes, as long as you're downloading content you have legal rights to access. PlayTera only generates links for publicly shared files." },
   { q: "Do I need an account?", a: "No account needed. Just visit the website, paste your link, and download — it takes less than 10 seconds." },
   { q: "Is my data safe and private?", a: "Absolutely. We don't collect personal data, log your downloads, or store any files. Your privacy is our priority." },
 ];

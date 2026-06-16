@@ -3,7 +3,7 @@ import { Shield, Mail, ExternalLink, FileText, AlertTriangle } from "lucide-reac
 
 export const metadata = {
   title: "DMCA Policy | TeraFetch",
-  description: "TeraFetch DMCA Policy — how we handle copyright infringement notices and content removal requests.",
+  description: "PlayTera DMCA Policy — how we handle copyright infringement notices and content removal requests.",
 };
 
 export const dynamic = "force-static";
@@ -12,7 +12,7 @@ const sections = [
   {
     icon: <FileText size={18} />, color: "#93c5fd",
     title: "Our Role",
-    content: "TeraFetch does not host, store, or distribute any copyrighted content. We only generate direct download links for publicly shared files already hosted on TeraBox servers. We have no control over or access to the content on TeraBox.",
+    content: "PlayTera does not host, store, or distribute any copyrighted content. We only generate direct download links for publicly shared files already hosted on TeraBox servers. We have no control over or access to the content on TeraBox.",
   },
   {
     icon: <AlertTriangle size={18} />, color: "#f5a623",
@@ -50,7 +50,7 @@ export default function DmcaPolicy() {
             fontWeight: 800, color: "#f0f4fc", letterSpacing: "-0.03em", margin: "0 0 14px",
           }}>DMCA Policy</h1>
           <p style={{ color: "#6b7a8d", fontSize: "15px", lineHeight: 1.75 }}>
-            TeraFetch respects intellectual property rights and responds promptly to copyright infringement notices under the Digital Millennium Copyright Act (DMCA).
+            PlayTera respects intellectual property rights and responds promptly to copyright infringement notices under the Digital Millennium Copyright Act (DMCA).
           </p>
         </div>
 

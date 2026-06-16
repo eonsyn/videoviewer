@@ -1,6 +1,5 @@
 import { genToken } from "@/lib/genToken";
-import Converter from "@/components/url/Converter";
-import TakeUrl from "@/components/home/TakeUrl.js";
+import Converter from "@/components/url/Converter"; 
 
 export default async function DownloadPage({ searchParams }) {
   const params = await searchParams;

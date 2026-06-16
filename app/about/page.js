@@ -3,8 +3,8 @@ import InteractiveGrid from "./InteractiveGrid";
 import { ArrowRight } from "lucide-react";
 
 export const metadata = {
-  title: "About TeraFetch | Fast & Secure TeraBox File Downloader",
-  description: "Learn about TeraFetch — a free, secure, and user-friendly tool to download videos and files directly from TeraBox links without login.",
+  title: "About PlayTera | Fast & Secure TeraBox File Downloader",
+  description: "Learn about PlayTera — a free, secure, and user-friendly tool to download videos and files directly from TeraBox links without login.",
 };
 
 export const dynamic = "force-static";
@@ -34,7 +34,7 @@ export default function AboutTeraFetch() {
             }}>Built for You</span>
           </h1>
           <p style={{ color: "#6b7a8d", fontSize: "16px", lineHeight: 1.8, maxWidth: "540px", margin: "0 auto 32px" }}>
-            TeraFetch is a free and secure web app that lets you download videos and files from TeraBox without signing in. Quick, private, and completely hassle-free.
+            PlayTera is a free and secure web app that lets you download videos and files from TeraBox without signing in. Quick, private, and completely hassle-free.
           </p>
           <Link href="/" style={{
             display: "inline-flex", alignItems: "center", gap: "8px",
@@ -44,7 +44,7 @@ export default function AboutTeraFetch() {
             boxShadow: "0 4px 20px rgba(79,141,245,0.35)", transition: "opacity 0.2s",
           }}
           >
-            Try TeraFetch Free <ArrowRight size={14} />
+            Try PlayTera Free <ArrowRight size={14} />
           </Link>
         </div>
 

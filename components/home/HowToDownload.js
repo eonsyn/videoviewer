@@ -11,7 +11,7 @@ const steps = [
   {
     num: "02", icon: <ClipboardPaste size={20} />, color: "#2dd4a4", bg: "rgba(45,212,164,0.1)",
     title: "Paste into TeraFetch",
-    desc: "Go to TeraFetch and paste the copied URL into the input box. Our system auto-detects the file type instantly.",
+    desc: "Go to PlayTera and paste the copied URL into the input box. Our system auto-detects the file type instantly.",
   },
   {
     num: "03", icon: <Download size={20} />, color: "#f5a623", bg: "rgba(245,166,35,0.1)",

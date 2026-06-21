@@ -46,7 +46,7 @@ export default function Disclaimer() {
               Our application provides <strong style={{ color: "#9aa5b4", fontWeight: 500 }}>direct download links</strong> for publicly accessible TeraBox files. We do not host, upload, or store any files. All downloads come directly from official TeraBox servers.
             </p>
             <p style={{ margin: 0 }}>
-              PlayTera respects all applicable <strong style={{ color: "#9aa5b4", fontWeight: 500 }}>copyright laws</strong> and encourages users to download only content they have legal rights to access.
+              TeraFetch  respects all applicable <strong style={{ color: "#9aa5b4", fontWeight: 500 }}>copyright laws</strong> and encourages users to download only content they have legal rights to access.
             </p>
 
             <div style={{

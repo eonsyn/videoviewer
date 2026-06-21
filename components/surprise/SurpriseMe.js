@@ -103,7 +103,7 @@ export default function SurpriseMe({ token, variant = "full" }) {
     setOpening(true);
     setTimeout(() => {
       window.open(
-        `https://playtera.netlify.app/download?url=${encodeURIComponent(
+        `/download?url=${encodeURIComponent(
           `https://terasharefile.com/s/1${selected.surl}`
         )}`,
         "_blank"

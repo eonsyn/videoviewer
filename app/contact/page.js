@@ -2,8 +2,8 @@ import { MessageCircle, Send, Mail, ArrowRight } from "lucide-react";
 import ContactCTA from "@/components/contact/ContactCTA";
 
 export const metadata = {
-  title: "Contact PlayTera | Get Support & Updates",
-  description: "Join the official PlayTera Telegram channel for updates, new features, and direct support.",
+  title: "Contact TeraFetch  | Get Support & Updates",
+  description: "Join the official TeraFetch  Telegram channel for updates, new features, and direct support.",
 };
 
 export const dynamic = "force-static";
@@ -36,7 +36,7 @@ export default function ContactPage() {
         }}>Get in Touch</h1>
 
         <p style={{ color: "#6b7a8d", fontSize: "15px", lineHeight: 1.7, marginBottom: "36px" }}>
-          Have a question, issue, or feedback? Join our Telegram community for direct support, announcements, and updates from the PlayTera team.
+          Have a question, issue, or feedback? Join our Telegram community for direct support, announcements, and updates from the TeraFetch  team.
         </p>
 
         <a href="https://t.me/+2fvOF7WT0YBjZDM9" target="_blank" rel="noopener noreferrer" style={{

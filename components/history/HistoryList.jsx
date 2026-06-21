@@ -111,7 +111,7 @@ export default function HistoryList({ autoplay, setAutoplay }) {
             },
           ];
 
-          const navUrl = `/download?url=${encodeURIComponent(entry.url)}`;
+          const navUrl = `/download?url=${encodeURIComponent(`https://terasharefile.com/s/1${entry.url}`)}`;
 
           return (
             <div

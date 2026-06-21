@@ -424,7 +424,9 @@ export default function Converter({ token, url }) {
     const idx = history.findIndex((h) => h.url === url);
     const next = idx !== -1 && idx + 1 < history.length ? history[idx + 1] : history[0];
     if (next && next.url !== url) {
-      router.push(`/download?url=${encodeURIComponent(next.url)}`);
+      router.push(
+  `/download?url=${encodeURIComponent(`https://terasharefile.com/s/1${next.url}`)}`
+)
     }
   };
 
@@ -492,7 +494,7 @@ export default function Converter({ token, url }) {
             </>
           )}
 
-          {!error && fileList && fileList.length > 0 && (
+          {!error && fileList && fileList.length > 1 && (
             <FileSelector
               files={fileList}
               activeFileId={activeFileId}

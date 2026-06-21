@@ -592,24 +592,49 @@ export default function CustomPlayer({
 
           <div className="flex items-center gap-3">
             {/* ── Fast/HLS toggle in control bar (mirrors top-right pill) ── */}
-            {hasBothSources && (
-              <button
-                onClick={handleToggleStream}
-                title={streamMode === "fast" ? "Switch to HLS" : "Switch to Fast"}
-                className={[
-                  "flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border transition-all",
-                  streamMode === "hls"
-                    ? "bg-red-600/80 border-red-500/40 text-white"
-                    : "bg-white/10 border-white/15 text-white/70 hover:bg-white/20 hover:text-white",
-                ].join(" ")}
-              >
-                {streamMode === "hls" ? (
-                  <><Layers className="w-3 h-3" /><span>HLS</span></>
-                ) : (
-                  <><Zap className="w-3 h-3" /><span>Fast</span></>
-                )}
-              </button>
-            )}
+          
+
+{hasBothSources && (
+  <div className="relative flex items-center bg-white/10 rounded-full p-0.5">
+    {/* sliding pill */}
+    <div
+      className={[
+        "absolute top-0.5 bottom-0.5 rounded-full transition-all duration-200 ease-in-out",
+        streamMode === "hls"
+          ? "left-0.5 bg-red-600 w-[calc(50%-2px)]"
+          : "left-[calc(50%+2px)] bg-blue-500 w-[calc(50%-2px)]",
+      ].join(" ")}
+    />
+
+    {/* HLS option */}
+    <button
+      onClick={streamMode !== "hls" ? handleToggleStream : undefined}
+      title="Switch to HLS"
+      className={[
+        "relative z-10 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-colors",
+        streamMode === "hls" ? "text-white" : "text-white/50 hover:text-white/80",
+      ].join(" ")}
+    >
+      <Layers className="w-3 h-3" />
+      <span>HLS</span>
+    </button>
+
+    {/* Fast option */}
+    <button
+      onClick={streamMode !== "fast" ? handleToggleStream : undefined}
+      title="Switch to Fast"
+      className={[
+        "relative z-10 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-colors",
+        streamMode === "fast" ? "text-white" : "text-white/50 hover:text-white/80",
+      ].join(" ")}
+    >
+      <Zap className="w-3 h-3" />
+      <span>Fast</span>
+    </button>
+  </div>
+)}
+
+
 
             <div className="relative">
               <button onClick={() => setShowSettings(!showSettings)} className="text-white hover:text-red-500 transition-colors p-1">

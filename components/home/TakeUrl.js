@@ -77,14 +77,18 @@ export default function TakeUrl({ variant = "page", onSearch }) {
 
   const handleClear = () => { setUrl(""); inputRef.current?.focus(); };
 
+  // ✅ FIX 1: Only clear URL in navbar mode (when onSearch is provided)
+  // In page mode, the Link handles navigation — don't wipe the URL
   const handleSubmit = () => {
     if (!url.trim()) return;
     if (onSearch) {
+      // Navbar mode: call handler and clear
       onSearch(url.trim());
       setUrl("");
     } else {
+      // Page mode: just show loading, URL stays so Link href works
       setLoading(true);
-      setTimeout(() => setLoading(false), 800);
+      setTimeout(() => setLoading(false), 1200);
     }
   };
 
@@ -105,25 +109,37 @@ export default function TakeUrl({ variant = "page", onSearch }) {
   const iconSize = isNavbar ? 14 : 17;
   const searchIconSz = isNavbar ? 13 : 16;
 
+  // ✅ FIX 2: Spinner SVG for the loading state
+  const SpinnerIcon = ({ size, color }) => (
+    <svg
+      width={size} height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      style={{ animation: "takeurl-spin 0.75s linear infinite" }}
+    >
+      <circle cx="12" cy="12" r="9" strokeOpacity="0.25" />
+      <path d="M12 3 a9 9 0 0 1 9 9" />
+    </svg>
+  );
+
   const SearchBar = (
     <div style={{
       position: "relative",
       borderRadius: outerRadius,
       isolation: "isolate",
       overflow: "hidden",
-      // When focused: solid 1.5px highlight instead of the spinning gradient.
-      // We do this by switching padding colour via a box-shadow on the outer
-      // wrapper — but the cleanest approach is a ::before pseudo via className,
-      // so instead we use a solid background on the wrapper itself.
       padding: "1.5px",
       background: focused
-        ? "#4f8df5"           // solid blue ring when focused
-        : "transparent",      // transparent when idle (spinner div shows through)
+        ? "#4f8df5"
+        : "transparent",
       transition: "background 0.25s ease",
       width: "100%",
     }}>
 
-      {/* Spinning conic border — hidden when focused by pointer-events:none + opacity */}
+      {/* Spinning conic border */}
       <div style={{
         position: "absolute",
         top: "50%", left: "50%",
@@ -139,7 +155,7 @@ export default function TakeUrl({ variant = "page", onSearch }) {
       {/* Inner row */}
       <div style={{
         position: "relative", zIndex: 1,
-        background: focused ? "#0d1420" : "#0c1018",  // very subtle bg tint on focus
+        background: focused ? "#0d1420" : "#0c1018",
         borderRadius: innerRadius,
         padding: innerPadding,
         height: isNavbar ? innerHeight : undefined,
@@ -170,7 +186,7 @@ export default function TakeUrl({ variant = "page", onSearch }) {
         />
 
         {/* Clear */}
-        {url && (
+        {url && !loading && (
           <button onClick={handleClear} title="Clear" style={{
             background: "none", border: "none", cursor: "pointer",
             color: "#6b7a8d", display: "flex", alignItems: "center",
@@ -193,36 +209,41 @@ export default function TakeUrl({ variant = "page", onSearch }) {
         }} />
 
         {/* Clipboard / paste */}
-        <button onClick={handlePaste} title="Paste from clipboard" style={{
-          background: "none", border: "none", cursor: "pointer",
-          color: focused ? "#4f8df5" : "#6b7a8d",
-          display: "flex", alignItems: "center",
-          padding: isNavbar ? "4px 8px" : "6px 10px",
-          flexShrink: 0, transition: "color 0.2s",
-        }}
-          onMouseEnter={e => e.currentTarget.style.color = "#4f8df5"}
-          onMouseLeave={e => e.currentTarget.style.color = focused ? "#4f8df5" : "#6b7a8d"}
-        >
-          <Clipboard size={iconSize} />
-        </button>
+        {!loading && (
+          <button onClick={handlePaste} title="Paste from clipboard" style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: focused ? "#4f8df5" : "#6b7a8d",
+            display: "flex", alignItems: "center",
+            padding: isNavbar ? "4px 8px" : "6px 10px",
+            flexShrink: 0, transition: "color 0.2s",
+          }}
+            onMouseEnter={e => e.currentTarget.style.color = "#4f8df5"}
+            onMouseLeave={e => e.currentTarget.style.color = focused ? "#4f8df5" : "#6b7a8d"}
+          >
+            <Clipboard size={iconSize} />
+          </button>
+        )}
 
-        {/* Search / Play button */}
+        {/* ✅ FIX 2: Search/Play button — shows spinner when loading */}
         {isNavbar ? (
-          <button onClick={handleSubmit} style={{
+          <button onClick={handleSubmit} disabled={loading} style={{
             height: btnHeight, minWidth: btnMinWidth,
             display: "flex", alignItems: "center", justifyContent: "center",
             flexShrink: 0,
             background: url ? "linear-gradient(135deg, #4f8df5 0%, #2563eb 100%)" : "rgba(255,255,255,0.05)",
             borderRadius: btnRadius, border: "none",
-            cursor: url ? "pointer" : "default",
+            cursor: url && !loading ? "pointer" : "default",
             transition: "background 0.25s, box-shadow 0.25s",
             boxShadow: url ? "0 2px 12px rgba(79,141,245,0.35)" : "none",
             padding: btnPadding,
           }}
-            onMouseEnter={e => { if (url) e.currentTarget.style.boxShadow = "0 3px 18px rgba(79,141,245,0.55)"; }}
+            onMouseEnter={e => { if (url && !loading) e.currentTarget.style.boxShadow = "0 3px 18px rgba(79,141,245,0.55)"; }}
             onMouseLeave={e => { e.currentTarget.style.boxShadow = url ? "0 2px 12px rgba(79,141,245,0.35)" : "none"; }}
           >
-            <Search size={searchIconSz} color={url ? "#fff" : "#3d4f64"} />
+            {loading
+              ? <SpinnerIcon size={searchIconSz} color="#fff" />
+              : <Search size={searchIconSz} color={url ? "#fff" : "#3d4f64"} />
+            }
           </button>
         ) : (
           <Link href={downloadPath} onClick={handleSubmit} style={{
@@ -231,8 +252,8 @@ export default function TakeUrl({ variant = "page", onSearch }) {
             flexShrink: 0,
             background: url ? "linear-gradient(135deg, #4f8df5 0%, #2563eb 100%)" : "rgba(255,255,255,0.05)",
             borderRadius: btnRadius,
-            cursor: url ? "pointer" : "default",
-            pointerEvents: url ? "auto" : "none",
+            cursor: url && !loading ? "pointer" : "default",
+            pointerEvents: url && !loading ? "auto" : "none",
             textDecoration: "none",
             transition: "background 0.25s, box-shadow 0.25s",
             boxShadow: url ? "0 2px 14px rgba(79,141,245,0.35)" : "none",
@@ -241,7 +262,10 @@ export default function TakeUrl({ variant = "page", onSearch }) {
             onMouseEnter={e => { if (url) e.currentTarget.style.boxShadow = "0 4px 22px rgba(79,141,245,0.55)"; }}
             onMouseLeave={e => { e.currentTarget.style.boxShadow = url ? "0 2px 14px rgba(79,141,245,0.35)" : "none"; }}
           >
-            <Search size={searchIconSz} color={url ? "#fff" : "#3d4f64"} />
+            {loading
+              ? <SpinnerIcon size={searchIconSz} color="#fff" />
+              : <Search size={searchIconSz} color={url ? "#fff" : "#3d4f64"} />
+            }
           </Link>
         )}
       </div>
@@ -276,6 +300,10 @@ export default function TakeUrl({ variant = "page", onSearch }) {
             from { transform: translate(-50%, -50%) rotate(0deg); }
             to   { transform: translate(-50%, -50%) rotate(360deg); }
           }
+          @keyframes takeurl-spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+          }
           input::placeholder { color: #2d3a4a !important; }
         `}</style>
       </div>
@@ -290,6 +318,10 @@ export default function TakeUrl({ variant = "page", onSearch }) {
         @keyframes takeurl-border-spin {
           from { transform: translate(-50%, -50%) rotate(0deg); }
           to   { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        @keyframes takeurl-spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
         }
         input::placeholder { color: #2d3a4a !important; }
       `}</style>

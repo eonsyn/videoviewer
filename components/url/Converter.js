@@ -55,6 +55,13 @@ export default function Converter({ token, url }) {
     setHlsReady(false);
     setSelectedVideo(null);
 
+    // Some files in the response can carry a per-file error (e.g. blocked/removed file)
+    if (fileData.error) {
+      setError(typeof fileData.error === "string" ? fileData.error : "This file is unavailable.");
+      setLoading(false);
+      return;
+    }
+
     const currentFileId = fileData.fs_id || fileData.stream_id || null;
     setActiveFileId(currentFileId);
 
@@ -62,7 +69,9 @@ export default function Converter({ token, url }) {
 
     try {
       const fastUrl = resolveFastUrl(fileData.fastStreamUrl);
-      const rawHlsUrl = fileData.stream;
+      // NOTE: the API doesn't always return a "stream" field (HLS playlist).
+      // When it's missing, fall back to the fast stream URL as the primary source.
+      const rawHlsUrl = fileData.stream || null;
 
       if (fastUrl) {
         const prelimObj = buildVideoObj(fileData, fastUrl, existingProgress);
@@ -71,7 +80,7 @@ export default function Converter({ token, url }) {
         setLoading(false);
       }
 
-      let finalUrl = rawHlsUrl;
+      let finalUrl = rawHlsUrl || fastUrl || null;
 
       if (rawHlsUrl?.includes("/playlist/") && rawHlsUrl.includes(".m3u8")) {
         try {
@@ -127,7 +136,7 @@ export default function Converter({ token, url }) {
         thumbnail: finalObj.thumbnail,
         // single-file fields (addEntry will upsert into files[])
         fs_id: currentFileId,
-        stream_url: finalUrl,
+        stream_url: finalUrl || "",
         fast_stream_url: fastUrl || "",
         duration_seconds: finalObj.duration_seconds,
         size_formatted: finalObj.size_formatted,
@@ -223,7 +232,7 @@ export default function Converter({ token, url }) {
                 const cachedProgress = activeRecord?.progress || hit.progress || 0;
 
                 const fast = resolveFastUrl(activeFile.fastStreamUrl);
-                const final = activeFile.stream;
+                const final = activeFile.stream || fast;
                 const videoObj = buildCachedVideoObj(activeRecord || hit, activeFile);
 
                 setActiveFileId(activeFile.fs_id);
@@ -251,19 +260,23 @@ export default function Converter({ token, url }) {
         });
         const data = await res.json();
 
-        if (!res.ok || !data.success) {
-          const msg = data?.error?.message || data?.message || "Failed to get stream data";
-          setError(
-            msg.toLowerCase().includes("removed") || msg.toLowerCase().includes("private")
-              ? "Video is removed or private. Please use another link."
-              : msg
-          );
-          setLoading(false);
-          return;
-        }
+        // The API may respond either wrapped as { success, response: {...} }
+        // or as a flat object like { surl, total, files: [...] }. Handle both.
+        const responseData = data.response || (Array.isArray(data.files) ? data : null);
 
-        const responseData = data.response;
-        if (!responseData) throw new Error("No data found in response");
+        if (!responseData) {
+          if (!res.ok || data.success === false) {
+            const msg = data?.error?.message || data?.message || "Failed to get stream data";
+            setError(
+              msg.toLowerCase().includes("removed") || msg.toLowerCase().includes("private")
+                ? "Video is removed or private. Please use another link."
+                : msg
+            );
+            setLoading(false);
+            return;
+          }
+          throw new Error("No data found in response");
+        }
 
         let files = [];
         let responseSurl = null;
@@ -271,12 +284,21 @@ export default function Converter({ token, url }) {
         if (Array.isArray(responseData.files) && responseData.files.length > 0) {
           files = responseData.files;
           responseSurl = responseData.surl || null;
-        } else if (responseData.filename || responseData.stream) {
+        } else if (responseData.filename || responseData.stream || responseData.fastStreamUrl) {
           files = [responseData];
           responseSurl = responseData.surl || null;
         } else {
           throw new Error("No video data found in response");
         }
+
+        // Drop files that came back with a per-file error, if any are usable
+        const usableFiles = files.filter((f) => !f.error);
+        if (usableFiles.length === 0 && files.length > 0) {
+          setError(files[0].error || "Video is removed or private. Please use another link.");
+          setLoading(false);
+          return;
+        }
+        files = usableFiles.length > 0 ? usableFiles : files;
 
         setSurl(responseSurl);
 
@@ -301,21 +323,25 @@ export default function Converter({ token, url }) {
           title: files[0]?.filename || "",
           thumbnail: files[0]?.thumb || "",
           progress: existingProgress,
-          files: files.map((f) => ({
-            fs_id: f.fs_id || f.stream_id,
-            filename: f.filename,
-            title: f.filename,
-            thumbnail: f.thumb || "",
-            stream_url: f.stream,
-            fast_stream_url: resolveFastUrl(f.fastStreamUrl) || "",
-            duration_seconds: f.duration || null,
-            size_formatted: formatSize(f.size),
-            duration_formatted: formatDuration(f.duration),
-            quality: f.width && f.height ? `${f.width}x${f.height}` : "",
-            width: f.width || null,
-            height: f.height || null,
-            category: f.category || "",
-          })),
+          files: files.map((f) => {
+            const fastResolved = resolveFastUrl(f.fastStreamUrl) || "";
+            return {
+              fs_id: f.fs_id || f.stream_id,
+              filename: f.filename,
+              title: f.filename,
+              thumbnail: f.thumb || "",
+              // Fall back to the fast stream when there's no separate HLS "stream" URL
+              stream_url: f.stream || fastResolved,
+              fast_stream_url: fastResolved,
+              duration_seconds: f.duration || null,
+              size_formatted: formatSize(f.size),
+              duration_formatted: formatDuration(f.duration),
+              quality: f.width && f.height ? `${f.width}x${f.height}` : "",
+              width: f.width || null,
+              height: f.height || null,
+              category: f.category || "",
+            };
+          }),
         });
 
         // Auto-load the first file
@@ -368,6 +394,8 @@ export default function Converter({ token, url }) {
   }
 
   function buildVideoObj(fileData, streamUrl, progress) {
+    const fastResolved = resolveFastUrl(fileData.fastStreamUrl);
+    const resolvedStream = streamUrl || fileData.stream || fastResolved || "";
     return {
       name: fileData.filename || "video.mp4",
       filename: fileData.filename || "video.mp4",
@@ -376,10 +404,10 @@ export default function Converter({ token, url }) {
       size_formatted: formatSize(fileData.size),
       duration_seconds: fileData.duration,
       duration_formatted: formatDuration(fileData.duration),
-      quality: `${fileData.width}x${fileData.height}`,
-      download_link: streamUrl,
-      stream_url: streamUrl,
-      fast_stream_url: fileData.fastStreamUrl || "",
+      quality: fileData.width && fileData.height ? `${fileData.width}x${fileData.height}` : "",
+      download_link: resolvedStream,
+      stream_url: resolvedStream,
+      fast_stream_url: fastResolved || "",
       progress,
       fs_id: fileData.fs_id || fileData.surl,
       ...fileData,
@@ -388,19 +416,21 @@ export default function Converter({ token, url }) {
 
   // Reconstruct a video object from a cached history file record + raw file shape
   function buildCachedVideoObj(fileRecord, rawFile) {
+    const fastResolved = fileRecord.fast_stream_url || resolveFastUrl(rawFile?.fastStreamUrl) || "";
+    const resolvedStream = fileRecord.stream_url || rawFile?.stream || fastResolved || "";
     return {
       name: fileRecord.title || fileRecord.filename || rawFile?.filename || "video.mp4",
       filename: fileRecord.filename || rawFile?.filename || "video.mp4",
       description: fileRecord.description || "",
       thumbnail: fileRecord.thumbnail || rawFile?.thumb || "",
       duration_seconds: fileRecord.duration_seconds,
-      stream_url: fileRecord.stream_url || rawFile?.stream,
-      fast_stream_url: fileRecord.fast_stream_url || resolveFastUrl(rawFile?.fastStreamUrl) || "",
-      download_link: fileRecord.stream_url || rawFile?.stream,
+      stream_url: resolvedStream,
+      fast_stream_url: fastResolved,
+      download_link: resolvedStream,
       progress: fileRecord.progress || 0,
       size_formatted: fileRecord.size_formatted || "",
       duration_formatted: fileRecord.duration_formatted || formatDuration(fileRecord.duration_seconds),
-      quality: fileRecord.quality || "",
+      quality: fileRecord.quality || (rawFile?.width && rawFile?.height ? `${rawFile.width}x${rawFile.height}` : ""),
       width: fileRecord.width || rawFile?.width || null,
       height: fileRecord.height || rawFile?.height || null,
       category: fileRecord.category || "",

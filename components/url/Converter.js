@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Loading from "./Loading.js";
@@ -14,8 +15,15 @@ import SurpriseMe from "../surprise/SurpriseMe.js";
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 
+// Dynamically import Turnstile to prevent Next.js SSR/Hydration errors
+const Turnstile = dynamic(
+  () => import("@marsidev/react-turnstile").then((mod) => mod.Turnstile),
+  { ssr: false }
+);
+
 export default function Converter({ token, url }) {
   const router = useRouter();
+  const [captchaToken, setCaptchaToken] = useState(null);
   const { addEntry, history, updateProgress } = useHistory();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -55,7 +63,6 @@ export default function Converter({ token, url }) {
     setHlsReady(false);
     setSelectedVideo(null);
 
-    // Some files in the response can carry a per-file error (e.g. blocked/removed file)
     if (fileData.error) {
       setError(typeof fileData.error === "string" ? fileData.error : "This file is unavailable.");
       setLoading(false);
@@ -64,13 +71,10 @@ export default function Converter({ token, url }) {
 
     const currentFileId = fileData.fs_id || fileData.stream_id || null;
     setActiveFileId(currentFileId);
-
     const historyKey = surlKey || url;
 
     try {
       const fastUrl = resolveFastUrl(fileData.fastStreamUrl);
-      // NOTE: the API doesn't always return a "stream" field (HLS playlist).
-      // When it's missing, fall back to the fast stream URL as the primary source.
       const rawHlsUrl = fileData.stream || null;
 
       if (fastUrl) {
@@ -127,14 +131,12 @@ export default function Converter({ token, url }) {
       setFinalStreamSrc(finalUrl);
       if (!fastUrl) setLoading(false);
 
-      // ── Update history entry: upsert this file into its files array ───────
       addEntry({
         url: historyKey,
         activeFileId: currentFileId,
         title: finalObj.name,
         filename: finalObj.filename,
         thumbnail: finalObj.thumbnail,
-        // single-file fields (addEntry will upsert into files[])
         fs_id: currentFileId,
         stream_url: finalUrl || "",
         fast_stream_url: fastUrl || "",
@@ -154,7 +156,6 @@ export default function Converter({ token, url }) {
     }
   };
 
-  // ─── Called when user clicks a file in FileSelector ───────────────────────
   const handleFileSelect = async (file) => {
     const historyKey = surl || url;
     let existingProgress = 0;
@@ -164,7 +165,6 @@ export default function Converter({ token, url }) {
         const parsed = JSON.parse(stored);
         const existingEntry = parsed.find((h) => h.url === historyKey);
         if (existingEntry) {
-          // Try to get per-file progress first, fall back to entry-level
           const fileRecord = existingEntry.files?.find(
             (f) => f.fs_id === (file.fs_id || file.stream_id)
           );
@@ -175,93 +175,97 @@ export default function Converter({ token, url }) {
     await loadVideoFile(file, existingProgress, surl);
   };
 
+  // ─── Main Initial Data Fetch ──────────────────────────────────────────────
   useEffect(() => {
     if (!url || !token) return;
 
     const fetchStreamData = async () => {
+      setLoading(true);
+      setError(null);
+      setFastStreamSrc(null);
+      setFinalStreamSrc(null);
+      setHlsReady(false);
+      setSelectedVideo(null);
+      setFileList(null);
+      setActiveFileId(null);
+      setSurl(null);
+
+      // 1. Cache check
       try {
-        setLoading(true);
-        setError(null);
-        setFastStreamSrc(null);
-        setFinalStreamSrc(null);
-        setHlsReady(false);
-        setSelectedVideo(null);
-        setFileList(null);
-        setActiveFileId(null);
-        setSurl(null);
+        const stored = localStorage.getItem("videoHistory");
+        if (stored) {
+          const parsedHistory = JSON.parse(stored);
+          const hit = parsedHistory.find((h) => h.url === url)
+            || parsedHistory.find((h) => h.files?.some((f) => f.stream_url?.includes(url)));
 
-        // ── Cache check ────────────────────────────────────────────────────
-        try {
-          const stored = localStorage.getItem("videoHistory");
-          if (stored) {
-            const parsedHistory = JSON.parse(stored);
-            // Check both by page url and by surl (entry.url may be a surl)
-            const hit = parsedHistory.find((h) => h.url === url)
-              || parsedHistory.find((h) =>
-                h.files?.some((f) => f.stream_url?.includes(url))
-              );
+          if (hit?.watchedAt) {
+            const isCacheValid = Date.now() - Number(hit.watchedAt) < TWO_HOURS_MS;
+            if (isCacheValid && hit.files?.length) {
+              const cachedFiles = hit.files.map((f) => ({
+                fs_id: f.fs_id,
+                filename: f.filename,
+                stream: f.stream_url,
+                fastStreamUrl: f.fast_stream_url,
+                thumb: f.thumbnail,
+                duration: f.duration_seconds,
+                width: f.width,
+                height: f.height,
+                size: f.size_formatted,
+                category: f.category || "",
+              }));
 
-            if (hit?.watchedAt) {
-              const isCacheValid = Date.now() - Number(hit.watchedAt) < TWO_HOURS_MS;
-              if (isCacheValid && hit.files?.length) {
-                // Restore full file list from cache
-                const cachedFiles = hit.files.map((f) => ({
-                  fs_id: f.fs_id,
-                  filename: f.filename,
-                  stream: f.stream_url,
-                  fastStreamUrl: f.fast_stream_url,
-                  thumb: f.thumbnail,
-                  duration: f.duration_seconds,
-                  width: f.width,
-                  height: f.height,
-                  size: f.size_formatted,
-                  category: f.category || "",
-                }));
+              setSurl(hit.url !== url ? hit.url : null);
+              setFileList(cachedFiles);
 
-                setSurl(hit.url !== url ? hit.url : null);
-                setFileList(cachedFiles);
+              const activeFile = cachedFiles.find((f) => f.fs_id === hit.activeFileId) || cachedFiles[0];
+              const activeRecord = hit.files.find((f) => f.fs_id === activeFile.fs_id);
+              const cachedProgress = activeRecord?.progress || hit.progress || 0;
 
-                // Load the last-active file (or first)
-                const activeFile = cachedFiles.find(
-                  (f) => f.fs_id === hit.activeFileId
-                ) || cachedFiles[0];
+              const fast = resolveFastUrl(activeFile.fastStreamUrl);
+              const final = activeFile.stream || fast;
+              const videoObj = buildCachedVideoObj(activeRecord || hit, activeFile);
 
-                const activeRecord = hit.files.find(
-                  (f) => f.fs_id === activeFile.fs_id
-                );
-                const cachedProgress = activeRecord?.progress || hit.progress || 0;
-
-                const fast = resolveFastUrl(activeFile.fastStreamUrl);
-                const final = activeFile.stream || fast;
-                const videoObj = buildCachedVideoObj(activeRecord || hit, activeFile);
-
-                setActiveFileId(activeFile.fs_id);
-                setSelectedVideo(videoObj);
-                setFastStreamSrc(fast || final);
-                setFinalStreamSrc(final);
-                if (fast && final && fast !== final) setHlsReady(true);
-                setLoading(false);
-                return;
-              }
+              setActiveFileId(activeFile.fs_id);
+              setSelectedVideo(videoObj);
+              setFastStreamSrc(fast || final);
+              setFinalStreamSrc(final);
+              if (fast && final && fast !== final) setHlsReady(true);
+              setLoading(false);
+              return; 
             }
           }
-        } catch (e) {
-          console.error("Cache read failed:", e);
         }
+      } catch (e) {
+        console.error("Cache read failed:", e);
+      }
 
-        // ── API call ───────────────────────────────────────────────────────
-        const res = await fetch("https://secure-api-2ae3.onrender.com/api/secure", {
+      // 2. Wait for Captcha if no cache hit
+      if (!captchaToken) {
+        setLoading(true);
+        return;
+      }
+
+      // 3. API call 
+      try {
+        const res = await fetch("https://player.terabro.workers.dev/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-secure-token": token,
+            "Authorization": `Bearer ${token}` 
           },
-          body: JSON.stringify({ url }),
+          // FIX: Send 'captchaToken' to match the Worker's expected body
+          body: JSON.stringify({ 
+            url, 
+            captchaToken: captchaToken 
+          }),
         });
-        const data = await res.json();
+        console.log(res)
+        if (!res.ok) {
+          const errData = await res.json().catch(() => null);
+          throw new Error(errData?.error || `HTTP error! status: ${res.status}`);
+        }
 
-        // The API may respond either wrapped as { success, response: {...} }
-        // or as a flat object like { surl, total, files: [...] }. Handle both.
+        const data = await res.json();
         const responseData = data.response || (Array.isArray(data.files) ? data : null);
 
         if (!responseData) {
@@ -291,7 +295,6 @@ export default function Converter({ token, url }) {
           throw new Error("No video data found in response");
         }
 
-        // Drop files that came back with a per-file error, if any are usable
         const usableFiles = files.filter((f) => !f.error);
         if (usableFiles.length === 0 && files.length > 0) {
           setError(files[0].error || "Video is removed or private. Please use another link.");
@@ -315,8 +318,6 @@ export default function Converter({ token, url }) {
 
         setFileList(files);
 
-        // ── Register ALL files into history immediately ────────────────────
-        // This ensures every file appears in the sidebar before playback starts.
         addEntry({
           url: historyKey,
           activeFileId: files[0]?.fs_id || files[0]?.stream_id,
@@ -330,7 +331,6 @@ export default function Converter({ token, url }) {
               filename: f.filename,
               title: f.filename,
               thumbnail: f.thumb || "",
-              // Fall back to the fast stream when there's no separate HLS "stream" URL
               stream_url: f.stream || fastResolved,
               fast_stream_url: fastResolved,
               duration_seconds: f.duration || null,
@@ -344,7 +344,6 @@ export default function Converter({ token, url }) {
           }),
         });
 
-        // Auto-load the first file
         await loadVideoFile(files[0], existingProgress, responseSurl);
 
       } catch (err) {
@@ -356,7 +355,7 @@ export default function Converter({ token, url }) {
 
     fetchStreamData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, token]);
+  }, [url, token, captchaToken]);
 
   async function pollUntilReady(base, streamId) {
     let ready = false;
@@ -414,7 +413,6 @@ export default function Converter({ token, url }) {
     };
   }
 
-  // Reconstruct a video object from a cached history file record + raw file shape
   function buildCachedVideoObj(fileRecord, rawFile) {
     const fastResolved = fileRecord.fast_stream_url || resolveFastUrl(rawFile?.fastStreamUrl) || "";
     const resolvedStream = fileRecord.stream_url || rawFile?.stream || fastResolved || "";
@@ -454,14 +452,41 @@ export default function Converter({ token, url }) {
     const idx = history.findIndex((h) => h.url === url);
     const next = idx !== -1 && idx + 1 < history.length ? history[idx + 1] : history[0];
     if (next && next.url !== url) {
-      router.push(
-  `/download?url=${encodeURIComponent(`https://terasharefile.com/s/1${next.url}`)}`
-)
+      router.push(`/download?url=${encodeURIComponent(`https://terasharefile.com/s/1${next.url}`)}`);
     }
   };
 
   return (
     <div style={{ width: "100%", maxWidth: "1600px", margin: "0 auto", boxSizing: "border-box" }}>
+
+            {/* Captcha Widget: Shows when waiting for API data without a cache hit */}
+      {loading && !error && !captchaToken && (
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "center", 
+          alignItems: "center", 
+          minHeight: "400px", 
+          flexDirection: "column", 
+          gap: "20px" 
+        }}>
+           <div style={{ minWidth: "300px", display: "flex", justifyContent: "center" }}>
+            <Turnstile 
+              // FIX: Hardcoded Cloudflare Test Site Key. 
+              // Replace with your real site key (starts with 0x...) later.
+              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} 
+              onSuccess={(tok) => setCaptchaToken(tok)}
+              onExpire={() => setCaptchaToken(null)}
+              onError={(errorCode) => {
+                console.error("Turnstile error code:", errorCode);
+                setError("Captcha verification failed. Please refresh the page.");
+              }}
+            />
+          </div>
+          <Loading />
+         
+        </div>
+      )}
+
 
       {error && <UrlError error={error} token={token} setError={setError} />}
    
@@ -476,7 +501,7 @@ export default function Converter({ token, url }) {
         {/* ── LEFT: Player + FileSelector + Details ── */}
         <div style={{ flex: "1 1 0%", minWidth: 0 }}>
 
-          {loading && !error && (
+          {loading && !error && captchaToken && (
             <div style={{
               borderRadius: "12px",
               overflow: "hidden",
@@ -510,7 +535,6 @@ export default function Converter({ token, url }) {
                     subtitleUrl={selectedVideo.subtitle_url}
                     onEnded={handleVideoEnded}
                     initialTime={selectedVideo.progress}
-                    // Pass fileId so progress is tracked per-file
                     onTimeUpdate={(t) => updateProgress(surl || url, t, selectedVideo.fs_id)}
                     hlsReady={hlsReady}
                   />
@@ -533,7 +557,8 @@ export default function Converter({ token, url }) {
             />
           )}
           
-      <SurpriseMe token={token} />
+          <SurpriseMe token={token} />
+
           {!loading && !error && selectedVideo && (fastStreamSrc || finalStreamSrc) && (
             <VideoDetails
               selectedVideo={selectedVideo}

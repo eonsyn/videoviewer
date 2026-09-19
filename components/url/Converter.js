@@ -1,6 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Loading from "./Loading.js";
 import { useHistory } from "@/components/history/HistoryProvider";
@@ -10,6 +10,7 @@ import VideoDetails from "./VideoDetails.js";
 import OtherFileFound from "./OtherFileFound";
 import FileSelector from "./FileSelector";
 import { isVideoFile } from "@/utils/isVideoFile";
+import { isImageFile } from "@/utils/isImageFile.js";
 import UrlError from "./UrlError.js";
 import SurpriseMe from "../surprise/SurpriseMe.js";
 
@@ -24,6 +25,8 @@ const Turnstile = dynamic(
 export default function Converter({ token, url }) {
   const router = useRouter();
   const [captchaToken, setCaptchaToken] = useState(null);
+  const [turnstileKey, setTurnstileKey] = useState(0);
+  const [captchaError, setCaptchaError] = useState(null);
   const { addEntry, history, updateProgress } = useHistory();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,6 +39,12 @@ export default function Converter({ token, url }) {
   const [activeFileId, setActiveFileId] = useState(null);
   const [surl, setSurl] = useState(null);
 
+  // Track if we've already fetched data for this URL to prevent infinite loops
+  const fetchedUrlRef = useRef(null);
+
+  // Fallback to Cloudflare's Testing Site Key if env var is missing
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
+
   useEffect(() => {
     try {
       const savedAutoplay = localStorage.getItem("autoplayPreference");
@@ -44,6 +53,24 @@ export default function Converter({ token, url }) {
       console.error("Failed to read autoplay preference:", e);
     }
   }, []);
+
+  // ─── Reset captcha whenever URL changes ─────────────────────────────────────
+  useEffect(() => {
+    fetchedUrlRef.current = null; // Reset fetch tracker
+    setCaptchaToken(null);
+    setTurnstileKey((k) => k + 1);
+    setError(null);
+    setCaptchaError(null);
+  }, [url]);
+
+  const resetCaptcha = (errorMessage = null) => {
+    // Only reset the captcha if we haven't successfully loaded the video yet
+    if (!fetchedUrlRef.current) {
+      setCaptchaToken(null);
+      setTurnstileKey((k) => k + 1);
+      setCaptchaError(errorMessage);
+    }
+  };
 
   const handleAutoplayChange = (newValue) => {
     setAutoplay(newValue);
@@ -168,7 +195,7 @@ export default function Converter({ token, url }) {
           const fileRecord = existingEntry.files?.find(
             (f) => f.fs_id === (file.fs_id || file.stream_id)
           );
-          existingProgress = fileRecord?.progress || existingEntry.progress || 0;
+          // existingProgress = fileRecord?.progress || existingEntry.progress || 0;
         }
       }
     } catch (e) { /* ignore */ }
@@ -179,7 +206,12 @@ export default function Converter({ token, url }) {
   useEffect(() => {
     if (!url || !token) return;
 
+    let cancelled = false;
+
     const fetchStreamData = async () => {
+      // Prevent fetching again if we already got data for this URL
+      if (fetchedUrlRef.current === url) return;
+
       setLoading(true);
       setError(null);
       setFastStreamSrc(null);
@@ -230,8 +262,10 @@ export default function Converter({ token, url }) {
               setFastStreamSrc(fast || final);
               setFinalStreamSrc(final);
               if (fast && final && fast !== final) setHlsReady(true);
+
+              fetchedUrlRef.current = url; // Mark as fetched
               setLoading(false);
-              return; 
+              return;
             }
           }
         }
@@ -245,27 +279,36 @@ export default function Converter({ token, url }) {
         return;
       }
 
-      // 3. API call 
+      // 3. API call
       try {
         const res = await fetch("https://player.terabro.workers.dev/", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` 
-          },
-          // FIX: Send 'captchaToken' to match the Worker's expected body
-          body: JSON.stringify({ 
-            url, 
-            captchaToken: captchaToken 
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, captchaToken: captchaToken }),
         });
-        console.log(res)
+        setCaptchaToken(null);
+
+        if (cancelled) return;
+
         if (!res.ok) {
           const errData = await res.json().catch(() => null);
-          throw new Error(errData?.error || `HTTP error! status: ${res.status}`);
+          const msg = errData?.error || `HTTP error! status: ${res.status}`;
+          if (
+            msg.toLowerCase().includes("captcha") ||
+            msg.toLowerCase().includes("token") ||
+            res.status === 403
+          ) {
+            resetCaptcha("Captcha rejected by server. Please verify again.");
+          }
+          throw new Error(msg);
         }
 
         const data = await res.json();
+        if (cancelled) return;
+
+        // Mark as fetched IMMEDIATELY so no secondary loops happen
+        fetchedUrlRef.current = url;
+
         const responseData = data.response || (Array.isArray(data.files) ? data : null);
 
         if (!responseData) {
@@ -459,37 +502,39 @@ export default function Converter({ token, url }) {
   return (
     <div style={{ width: "100%", maxWidth: "1600px", margin: "0 auto", boxSizing: "border-box" }}>
 
-            {/* Captcha Widget: Shows when waiting for API data without a cache hit */}
+      {/* Captcha Widget: Shows when waiting for API data without a cache hit */}
       {loading && !error && !captchaToken && (
-        <div style={{ 
-          display: "flex", 
-          justifyContent: "center", 
-          alignItems: "center", 
-          minHeight: "400px", 
-          flexDirection: "column", 
-          gap: "20px" 
+        <div style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "400px",
+          flexDirection: "column",
+          gap: "20px"
         }}>
-           <div style={{ minWidth: "300px", display: "flex", justifyContent: "center" }}>
-            <Turnstile 
-              // FIX: Hardcoded Cloudflare Test Site Key. 
-              // Replace with your real site key (starts with 0x...) later.
-              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} 
-              onSuccess={(tok) => setCaptchaToken(tok)}
-              onExpire={() => setCaptchaToken(null)}
-              onError={(errorCode) => {
-                console.error("Turnstile error code:", errorCode);
-                setError("Captcha verification failed. Please refresh the page.");
+          <div style={{ minWidth: "300px", display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+            <Turnstile
+              key={turnstileKey}
+              siteKey={siteKey}
+              onSuccess={(tok) => {
+                setCaptchaToken(tok);
+                setCaptchaError(null);
               }}
+              onExpire={() => resetCaptcha("Captcha expired. Please verify again.")}
+              onError={() => resetCaptcha("Captcha verification failed. Please try again.")}
             />
+            {captchaError && (
+              <p style={{ color: "#ef4444", fontSize: "14px", textAlign: "center" }}>
+                {captchaError}
+              </p>
+            )}
           </div>
           <Loading />
-         
         </div>
       )}
 
-
       {error && <UrlError error={error} token={token} setError={setError} />}
-   
+
       <div style={{
         display: "flex",
         flexDirection: "row",
@@ -511,42 +556,80 @@ export default function Converter({ token, url }) {
             </div>
           )}
 
-          {!loading && !error && selectedVideo && (fastStreamSrc || finalStreamSrc) && (
-            <>
-              {isVideoFile(selectedVideo.filename) ? (
-                <div style={{
-                  width: "100%",
-                  position: "relative",
-                  borderRadius: "12px",
-                  overflow: "hidden",
-                  background: "#000",
-                  border: "1px solid rgba(255,255,255,0.07)",
-                  aspectRatio: selectedVideo.width && selectedVideo.height
-                    ? `${selectedVideo.width} / ${selectedVideo.height}`
-                    : "16/9",
-                  maxHeight: "70vh",
-                }}>
-                  <CustomPlayer
-                    fastSrc={fastStreamSrc}
-                    src={finalStreamSrc || fastStreamSrc}
-                    fallbackSrc={fastStreamSrc}
-                    poster={selectedVideo.thumbnail}
-                    apiDuration={selectedVideo.duration_seconds}
-                    subtitleUrl={selectedVideo.subtitle_url}
-                    onEnded={handleVideoEnded}
-                    initialTime={selectedVideo.progress}
-                    onTimeUpdate={(t) => updateProgress(surl || url, t, selectedVideo.fs_id)}
-                    hlsReady={hlsReady}
+          {!loading &&
+            !error &&
+            selectedVideo &&
+            (fastStreamSrc || finalStreamSrc) && (
+              <>
+                {isVideoFile(selectedVideo.filename) ? (
+                  <div
+                    style={{
+                      width: "100%",
+                      position: "relative",
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                      background: "#000",
+                      border: "1px solid rgba(255,255,255,0.07)",
+                      aspectRatio:
+                        selectedVideo.width && selectedVideo.height
+                          ? `${selectedVideo.width} / ${selectedVideo.height}`
+                          : "16/9",
+                      maxHeight: "70vh",
+                    }}
+                  >
+                    <CustomPlayer
+                      fastSrc={fastStreamSrc}
+                      src={finalStreamSrc || fastStreamSrc}
+                      fallbackSrc={fastStreamSrc}
+                      poster={selectedVideo.thumbnail}
+                      apiDuration={selectedVideo.duration_seconds}
+                      subtitleUrl={selectedVideo.subtitle_url}
+                      onEnded={handleVideoEnded}
+                      initialTime={selectedVideo.progress}
+                      onTimeUpdate={(t) =>
+                        updateProgress(
+                          surl || url,
+                          t,
+                          selectedVideo.fs_id
+                        )
+                      }
+                      hlsReady={hlsReady}
+                    />
+                  </div>
+                ) : isImageFile(selectedVideo.filename) ? (
+                  <div
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                      background: "#000",
+                      border: "1px solid rgba(255,255,255,0.07)",
+                      maxHeight: "70vh",
+                    }}
+                  >
+                    <img
+                      src={finalStreamSrc || fastStreamSrc}
+                      alt={selectedVideo.filename || "Image"}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        height: "auto",
+                        maxHeight: "70vh",
+                        objectFit: "contain",
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <OtherFileFound
+                    filename={selectedVideo.filename}
+                    download={fastStreamSrc || finalStreamSrc}
                   />
-                </div>
-              ) : (
-                <OtherFileFound
-                  filename={selectedVideo.filename}
-                  download={fastStreamSrc || finalStreamSrc}
-                />
-              )}
-            </>
-          )}
+                )}
+              </>
+            )}
 
           {!error && fileList && fileList.length > 1 && (
             <FileSelector
@@ -556,7 +639,7 @@ export default function Converter({ token, url }) {
               loadingFileId={loading ? activeFileId : null}
             />
           )}
-          
+
           <SurpriseMe token={token} />
 
           {!loading && !error && selectedVideo && (fastStreamSrc || finalStreamSrc) && (
